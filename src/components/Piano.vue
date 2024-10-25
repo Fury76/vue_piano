@@ -29,12 +29,8 @@
           :octave="0"
           :note="note"
           :x="index * 24"
-          :isPressed="pressedKeys.includes(`${note}0`)"
+          :isPressed="pressedKeys.has(JSON.stringify({ keyIndex: index, octave: 0, note }))"
           :data-key="JSON.stringify({ keyIndex: index, octave: 0, note })"
-          @keyPress="handleKeyPress($event)"
-          @keyRelease="handleKeyRelease($event)"
-          @mouseEnter="handleMouseEnter($event)"
-          @mouseLeave="handleMouseLeave($event)"
         />
         <BlackKey
           :key="'lowest-black-A#'"
@@ -42,12 +38,8 @@
           :octave="0"
           :note="'A#'"
           :x="18"
-          :isPressed="pressedKeys.includes('A#0')"
+          :isPressed="pressedKeys.has(JSON.stringify({ keyIndex: 1, octave: 0, note: 'A#' }))"
           :data-key="JSON.stringify({ keyIndex: 1, octave: 0, note: 'A#' })"
-          @keyPress="handleKeyPress($event)"
-          @keyRelease="handleKeyRelease($event)"
-          @mouseEnter="handleMouseEnter($event)"
-          @mouseLeave="handleMouseLeave($event)"
         />
         <!-- 7个八度 -->
         <PianoOctave
@@ -56,10 +48,6 @@
           :octaveIndex="octave"
           :startOctave="0"
           :pressedKeys="pressedKeys"
-          @keyPress="handleKeyPress($event)"
-          @keyRelease="handleKeyRelease($event)"
-          @mouseEnter="handleMouseEnter($event)"
-          @mouseLeave="handleMouseLeave($event)"
         />
         <!-- 最高音部分的键 -->
         <WhiteKey
@@ -69,12 +57,8 @@
           :octave="8"
           :note="note"
           :x="1224 + (index) * 24"
-          :isPressed="pressedKeys.includes(`${note}8`)"
+          :isPressed="pressedKeys.has(JSON.stringify({ keyIndex: 84 + index, octave: 8, note }))"
           :data-key="JSON.stringify({ keyIndex: 84 + index, octave: 8, note })"
-          @keyPress="handleKeyPress($event)"
-          @keyRelease="handleKeyRelease($event)"
-          @mouseEnter="handleMouseEnter($event)"
-          @mouseLeave="handleMouseLeave($event)"
         />
         <BlackKey
           v-for="(note, index) in ['C#', 'D#']"
@@ -83,12 +67,8 @@
           :octave="8"
           :note="note"
           :x="1242 + index * 24"
-          :isPressed="pressedKeys.includes(`${note}8`)"
+          :isPressed="pressedKeys.has(JSON.stringify({ keyIndex: 85 + index, octave: 8, note }))"
           :data-key="JSON.stringify({ keyIndex: 85 + index, octave: 8, note })"
-          @keyPress="handleKeyPress($event)"
-          @keyRelease="handleKeyRelease($event)"
-          @mouseEnter="handleMouseEnter($event)"
-          @mouseLeave="handleMouseLeave($event)"
         />
         </g>
         <g v-if="showSections" transform="translate(8, 10)">
@@ -121,7 +101,7 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import { defineProps, defineEmits, withDefaults } from 'vue'
+import { defineProps, defineEmits, withDefaults, onBeforeUnmount, onMounted } from 'vue'
 import PianoOctave from './PianoOctave.vue'
 import WhiteKey from './WhiteKey.vue'
 import BlackKey from './BlackKey.vue'
@@ -132,10 +112,16 @@ const props = withDefaults(defineProps<{
   showSections: false
 })
 
-const pressedKeys = ref<string[]>([])
-const isMouseDown = ref(false)
-const lastPressedKey = ref<string | null>(null)
-const emit = defineEmits(['keyEvent'])
+const pressedKeys = ref<Map<string, boolean>>(new Map<string, boolean>())
+
+  
+defineEmits<{
+    (e: 'keyPress', data: { keyIndex: number; octave: number; note: string }, originalEvent: MouseEvent): void
+    (e: 'keyRelease', data: { keyIndex: number; octave: number; note: string }, originalEvent: MouseEvent): void
+    (e: 'mouseEnter', data: { keyIndex: number; octave: number; note: string }, originalEvent: MouseEvent): void
+    (e: 'mouseLeave', data: { keyIndex: number; octave: number; note: string }, originalEvent: MouseEvent): void
+}>()
+
 
 const sections = [
   { name: '大字1组', start: 0, end: 11 },
@@ -147,81 +133,124 @@ const sections = [
   { name: '小字4组', start: 72, end: 87 }
 ]
 
+
 const getSectionForKey = (keyIndex: number) => {
   return sections.find(section => keyIndex >= section.start && keyIndex <= section.end)
 }
 
-const handleKeyPress = (eventData: any) => {
-  console.log("Custom data:", eventData);
+// 公共函数：从事件中提取键数据
+const getKeyDataFromEvent = (event: MouseEvent) => {
+  const target = (event.target as HTMLElement).closest('[item-key="piano-key-single-item"]') as HTMLElement | null;
+
+  if (target) {
+    const dataKey = target.getAttribute('data-key');
+
+    if (dataKey) {
+      try {
+        const keyData = JSON.parse(dataKey);
+        keyData.itemKey = dataKey
+        return keyData;
+      } catch (error) {
+        console.error("Failed to parse data-key JSON:", error);
+      }
+    } else {
+      console.warn("data-key attribute not found on the target element.");
+    }
+  } else {
+    console.warn('No element with item-key="piano-key-single-item" found.');
+  }
+
+  return null; // 如果未找到或解析失败，返回 null
 };
 
-const handleKeyRelease = (eventData: { keyIndex: number; octave: number; note: string }) => {
-    console.log("key handleKeyRelease: ", eventData)
-}
+// 处理按键按下的事件
+const emitKeyPress = (data: { keyData: { keyIndex: number; octave: number; note: string }; originalEvent: MouseEvent }) => {
+  console.log("Key Pressed:", data.keyData);
+  console.log("Original Event:", data.originalEvent);
+};
 
-const handleMouseEnter = (eventData: { keyIndex: number; octave: number; note: string }) => {
-    console.log("key handleMouseEnter: ", eventData.data.note)
-}
+const emitKeyRelease = (payload: { keyData: { keyIndex: number; octave: number; note: string }; originalEvent: MouseEvent }) => {
+  console.log("Key Released:", payload.keyData);
+};
 
-const handleMouseLeave = (eventData: { keyIndex: number; octave: number; note: string }) => {
-    console.log("key handleMouseLeave: ", eventData)
-}
+const emitKeyMove = (payload: { keyData: { keyIndex: number; octave: number; note: string }; originalEvent: MouseEvent }) => {
+  console.log("Key Moved:", payload.keyData);
 
-const handleMouseDown = (event: MouseEvent) => {
-  event.preventDefault() // 防止文本选择
-  isMouseDown.value = true
-  handleMouseMove(event)
-}
+};
 
-const handleMouseMove = (event: MouseEvent) => {
-  event.preventDefault() // 防止文本选择
-  if (!isMouseDown.value) return
+const activeKeys = new Map<number, { keyIndex: number; octave: number; note: string; itemKey: string}>();
 
-  const target = event.target as Element
-  const keyElement = target.closest('[data-key]')
-  if (keyElement) {
-    const keyData = JSON.parse(keyElement.getAttribute('data-key') || '{}')
-    const key = `${keyData.note}${keyData.octave}`
+const handlePointerDown = (event: PointerEvent) => {
+  event.preventDefault();
+  event.stopPropagation();
 
-    if (key !== lastPressedKey.value) {
-      if (lastPressedKey.value) {
-        removePressedKey(JSON.parse(document.querySelector(`[data-key*="${lastPressedKey.value}"]`)?.getAttribute('data-key') || '{}'))
-      }
-      addPressedKey(keyData)
-      lastPressedKey.value = key
+  const result = getKeyDataFromEvent(event);
+  if (result) {
+    const key = result.itemKey;
+    if (!pressedKeys.value.has(key)) {
+      pressedKeys.value.set(key, true); // 记录按键状态
+      emitKeyPress({ keyData: result, originalEvent: event }); // 将键数据和事件一起传递
     }
-  } else if (lastPressedKey.value) {
-    removePressedKey(JSON.parse(document.querySelector(`[data-key*="${lastPressedKey.value}"]`)?.getAttribute('data-key') || '{}'))
-    lastPressedKey.value = null
+    activeKeys.set(event.pointerId, result); // 将 pointerId 和当前按键 key 绑定
   }
-}
+};
 
-const handleMouseUp = (event: MouseEvent) => {
-  event.preventDefault() // 防止文本选择
-  isMouseDown.value = false
-  if (lastPressedKey.value) {
-    console.log(lastPressedKey.value, document.querySelector(`[data-key*="${lastPressedKey.value}"]`),  JSON.parse(document.querySelector(`[data-key*="${lastPressedKey.value}"]`)?.getAttribute('data-key') || '{}'))
-    removePressedKey(JSON.parse(document.querySelector(`[data-key*="${lastPressedKey.value}"]`)?.getAttribute('data-key') || '{}'))
-    lastPressedKey.value = null
+const handlePointerMove = (event: PointerEvent) => {
+  const result = getKeyDataFromEvent(event);
+  const previousKey = activeKeys.get(event.pointerId); // 获取当前触控点上次的按键 key
+
+  if (result) {
+    const currentKey = result.itemKey;
+
+    // 检查当前按键与之前按键是否不同
+    if (previousKey && previousKey !== currentKey && pressedKeys.value.has(previousKey.itemKey)) {
+      emitKeyRelease({ keyData: previousKey, originalEvent: event });
+      pressedKeys.value.delete(previousKey.itemKey); // 移除之前按键的状态
+    }
+
+    // 如果当前按键未被按下，触发按下事件
+    if (!pressedKeys.value.has(currentKey)) {
+      pressedKeys.value.set(currentKey, true); // 记录按键状态
+      emitKeyPress({ keyData: result, originalEvent: event }); // 将键数据和事件一起传递
+    }
+
+    // 更新 activeKeys 中该触控点的按键为当前按键
+    activeKeys.set(event.pointerId, currentKey);
+  } else if (previousKey) {
+    // 如果滑出所有按键区域，则触发上一个按键的松开事件
+    emitKeyRelease({ keyData:  previousKey, originalEvent: event });
+    pressedKeys.value.delete(previousKey.itemKey); // 移除按键状态
+    activeKeys.delete(event.pointerId); // 从 activeKeys 中移除该触控点
   }
-}
+};
 
-const addPressedKey = (data: { keyIndex: number; octave: number; note: string }) => {
-  const key = `${data.note}${data.octave}`
-  if (!pressedKeys.value.includes(key)) {
-    pressedKeys.value.push(key)
-    const section = getSectionForKey(data.keyIndex)
-    emit('keyEvent', { ...data, action: 'press', section: section ? section.name : null })
+const handlePointerUp = (event: PointerEvent) => {
+  const currentKeyData = activeKeys.get(event.pointerId); // 获取当前触控点的按键信息
+
+  if (currentKeyData && pressedKeys.value.has(currentKeyData.itemKey)) {
+    // 触发松开事件并传递按键信息
+    emitKeyRelease({ keyData: currentKeyData, originalEvent: event });
+    pressedKeys.value.delete(currentKeyData.itemKey); // 从 pressedKeys 中移除该按键
   }
-}
 
-const removePressedKey = (data: { keyIndex: number; octave: number; note: string }) => {
-  const key = `${data.note}${data.octave}`
-  console.log("key: ", key)
-  pressedKeys.value = pressedKeys.value.filter(k => k !== key)
-  const section = getSectionForKey(data.keyIndex)
-  emit('keyEvent', { ...data, action: 'release', section: section ? section.name : null })
-}
+  activeKeys.delete(event.pointerId); // 从 activeKeys 中移除该触控点
+};
+
+
+// 在组件挂载时添加事件监听
+onMounted(() => {
+  window.addEventListener('pointerdown', handlePointerDown);
+  window.addEventListener('pointermove', handlePointerMove);
+  window.addEventListener('pointerup', handlePointerUp);
+});
+
+// 在组件卸载时移除事件监听
+onBeforeUnmount(() => {
+  window.removeEventListener('pointerdown', handlePointerDown);
+  window.removeEventListener('pointermove', handlePointerMove);
+  window.removeEventListener('pointerup', handlePointerUp);
+});
+
 </script>
 
 <style scoped>

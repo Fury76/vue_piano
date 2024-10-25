@@ -1,5 +1,5 @@
 <template>
-    <PianoKey v-bind="$props" :data-key="$attrs['data-key']" @keyPress="$emit('keyPress', $event)" @keyRelease="$emit('keyRelease', $event)" @mouseEnter="$emit('mouseEnter', $event)" @mouseLeave="$emit('mouseLeave', $event)">
+    <PianoKey v-bind="$props" :data-key="$attrs['data-key']">
       <rect
         width="13"
         height="80"
@@ -24,13 +24,7 @@
     x: number
     isPressed: boolean
   }>()
-  
-  defineEmits<{
-    (e: 'keyPress', data: { keyIndex: number; octave: number; note: string }, originalEvent: MouseEvent): void
-    (e: 'keyRelease', data: { keyIndex: number; octave: number; note: string }, originalEvent: MouseEvent): void
-    (e: 'mouseEnter', data: { keyIndex: number; octave: number; note: string }, originalEvent: MouseEvent): void
-    (e: 'mouseLeave', data: { keyIndex: number; octave: number; note: string }, originalEvent: MouseEvent): void
-  }>()
+
   </script>
   
   <style scoped>

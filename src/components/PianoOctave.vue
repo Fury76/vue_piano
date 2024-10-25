@@ -7,13 +7,8 @@
       :octave="octaveIndex + startOctave"
       :note="note"
       :x="index * 24"
-      :isPressed="pressedKeys.includes(`${note}${octaveIndex + startOctave}`)"
+      :isPressed="pressedKeys.has(JSON.stringify({ keyIndex: octaveIndex * 12 + index, octave: octaveIndex + startOctave, note }))"
       :data-key="JSON.stringify({ keyIndex: octaveIndex * 12 + index, octave: octaveIndex + startOctave, note })"
-      @keyPress="$emit('keyPress', $event)"
-      @keyRelease="$emit('keyRelease', $event)"
-      @mouseEnter="$emit('mouseEnter', $event)"
-      @mouseLeave="$emit('mouseLeave', $event)"
-      
     />
     <BlackKey
       v-for="(note, index) in blackNotes"
@@ -22,12 +17,8 @@
       :octave="octaveIndex + startOctave"
       :note="note"
       :x="blackKeyPositions[index]"
-      :isPressed="pressedKeys.includes(`${note}${octaveIndex + startOctave}`)"
+      :isPressed="pressedKeys.has(JSON.stringify({ keyIndex: octaveIndex * 12 + whiteNotes.indexOf(note.replace('#', '')) + 1, octave: octaveIndex + startOctave, note }))"
       :data-key="JSON.stringify({ keyIndex: octaveIndex * 12 + whiteNotes.indexOf(note.replace('#', '')) + 1, octave: octaveIndex + startOctave, note })"
-      @keyPress="$emit('keyPress', $event)"
-      @keyRelease="$emit('keyRelease', $event)"
-      @mouseEnter="$emit('mouseEnter', $event)"
-      @mouseLeave="$emit('mouseLeave', $event)"
     />
   </g>
 </template>
@@ -40,14 +31,7 @@ import BlackKey from './BlackKey.vue'
 defineProps<{
   octaveIndex: number
   startOctave: number
-  pressedKeys: string[]
-}>()
-
-defineEmits<{
-  (e: 'keyPress', data: { keyIndex: number; octave: number; note: string }, originalEvent: MouseEvent): void
-  (e: 'keyRelease', data: { keyIndex: number; octave: number; note: string }, originalEvent: MouseEvent): void
-  (e: 'mouseEnter', data: { keyIndex: number; octave: number; note: string }, originalEvent: MouseEvent): void
-  (e: 'mouseLeave', data: { keyIndex: number; octave: number; note: string }, originalEvent: MouseEvent): void
+  pressedKeys: Map<string, boolean>
 }>()
 
 const whiteNotes = ['C', 'D', 'E', 'F', 'G', 'A', 'B']
