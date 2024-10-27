@@ -8,6 +8,7 @@
       :fill="isPressed ? pressedFill : fill"
       :stroke="strokeColor"
       :stroke-width="strokeWidth"
+      key-type="white"
       :class="{ 'key-pressed': isPressed }"
     />
     <text
@@ -27,7 +28,6 @@ import PianoKey from './PianoKey.vue';
 
 // 设置 props，增加通用性
 const props = withDefaults(defineProps<{
-  keyIndex: number;
   octave: number;
   note: string;
   x: number;
@@ -48,6 +48,7 @@ const props = withDefaults(defineProps<{
   strokeColor: '#000', // 默认边框颜色
   strokeWidth: 1, // 默认边框宽度
 });
+
 </script>
 
 <style scoped>

@@ -1,5 +1,13 @@
 <template>
-  <div ref="pianoElement" class="piano-container" @dblclick="onDoubleClick">
+  <div ref="pianoElement" 
+  class="piano-container" 
+  @dblclick="onDoubleClick"
+  @contextmenu="onRightClick"
+  @mousedown="onMouseDown"
+  @mouseup="onMouseUp"
+  @touchstart="onTouchStart"
+  @touchend="onTouchEnd"
+  >
     <svg width="1416" height="220" viewBox="0 0 1416 220">
       <defs>
         <linearGradient id="whiteKeyGradient" x1="0%" y1="0%" x2="100%" y2="0%">
@@ -39,14 +47,13 @@
       </defs>
 
       <g transform="translate(8, 30)">
-        <!-- 7个八度 -->
         <PianoOctave
-          v-for="octave in 7"
-          :key="`octave-${octave}`"
-          :octaveIndex="octave"
-          :startOctave="0"
-          :show-sections="showSections"
+          v-for="octaveIndex in visibleOctaves"
+          :key="`octave-${octaveIndex}`"
+          :octaveIndex="octaveIndex"
           :pressedKeys="pressedKeys"
+          :showSections="showSections"
+          :visibleOctaves="visibleOctaves"
         />
       </g>
     </svg>
@@ -55,6 +62,7 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
+import * as Tone from 'tone';
 import {
   defineProps,
   defineEmits,
@@ -63,14 +71,21 @@ import {
   onMounted,
 } from 'vue'
 import PianoOctave from './PianoOctave.vue'
-import WhiteKey from './WhiteKey.vue'
-import BlackKey from './BlackKey.vue'
+
+// 用于存储当前按下的音轨
+const activeNotes = new Map();
 
 const props = withDefaults(
   defineProps<{
-    showSections?: boolean
+    showSections?: boolean,
+    showHighestKey?: boolean,
+    showLowestKeys?: boolean,
+    visibleOctaves?: number[],
   }>(),
   {
+    visibleOctaves: () => [0, 1,2, 3, 4, 5, 6, 7, 8],
+    showHighestKey: true,
+    showLowestKeys: false,
     showSections: false,
   },
 )
@@ -81,41 +96,25 @@ const pressedKeys = ref<Map<string, boolean>>(new Map<string, boolean>())
 defineEmits<{
   (
     e: 'keyPress',
-    data: { keyIndex: number; octave: number; note: string },
+    data: { keyIndex: number; octave: number; note: string, itemKey: string },
     originalEvent: MouseEvent,
   ): void
   (
     e: 'keyRelease',
-    data: { keyIndex: number; octave: number; note: string },
+    data: { keyIndex: number; octave: number; note: string, itemKey: string },
     originalEvent: MouseEvent,
   ): void
   (
     e: 'mouseEnter',
-    data: { keyIndex: number; octave: number; note: string },
+    data: { keyIndex: number; octave: number; note: string, itemKey: string },
     originalEvent: MouseEvent,
   ): void
   (
     e: 'mouseLeave',
-    data: { keyIndex: number; octave: number; note: string },
+    data: { keyIndex: number; octave: number; note: string, itemKey: string },
     originalEvent: MouseEvent,
   ): void
 }>()
-
-const sections = [
-  { name: '大字1组', start: 2, end: 8 },
-  { name: '大字组', start: 9, end: 15 },
-  { name: '小字组', start: 16, end: 22 },
-  { name: '小字1组', start: 23, end: 29 },
-  { name: '小字2组', start: 30, end: 36 },
-  { name: '小字3组', start: 37, end: 43 },
-  { name: '小字4组', start: 44, end: 50 },
-]
-
-const getSectionForKey = (keyIndex: number) => {
-  return sections.find(
-    section => keyIndex >= section.start && keyIndex <= section.end,
-  )
-}
 
 // 公共函数：从事件中提取键数据
 const getKeyDataFromEvent = (event: MouseEvent) => {
@@ -148,19 +147,69 @@ const onDoubleClick = (event: MouseEvent) => {
   event.stopPropagation()
   return
 }
+
+const onRightClick = (event: MouseEvent) => {
+  event.preventDefault()
+  event.stopPropagation()
+}
+
+const longPressTimer = ref<number | null>(null)
+
+const onMouseDown = () => {
+  // 如果按下超过一定时间（如 500ms），则判断为长按
+  longPressTimer.value = window.setTimeout(() => {
+    // 阻止长按触发的操作
+    console.log('Long press detected')
+  }, 500)
+}
+
+const onMouseUp = () => {
+  // 释放时清除长按计时器
+  if (longPressTimer.value) {
+    clearTimeout(longPressTimer.value)
+    longPressTimer.value = null
+  }
+}
+
+const onTouchStart = () => {
+  // 处理移动设备的长按
+  longPressTimer.value = window.setTimeout(() => {
+    console.log('Long press detected on touch')
+  }, 500)
+}
+
+const onTouchEnd = () => {
+  // 触摸结束时清除长按计时器
+  if (longPressTimer.value) {
+    clearTimeout(longPressTimer.value)
+    longPressTimer.value = null
+  }
+}
 // 处理按键按下的事件
 const emitKeyPress = (data: {
-  keyData: { keyIndex: number; octave: number; note: string }
+  keyData: { keyIndex: number; octave: number; note: string, itemKey: string }
   originalEvent: MouseEvent
 }) => {
+  console.log(data.keyData.note)
+  if (!activeNotes.has(data.keyData.note)) {
+    // 创建一个新的合成器并启动音频播放
+    const synth = new Tone.Synth().toDestination();
+    synth.triggerAttack(data.keyData.note);
+    activeNotes.set(data.keyData.note, synth);
+  }
   console.log('Key Pressed:', data.keyData)
 }
 
-const emitKeyRelease = (payload: {
-  keyData: { keyIndex: number; octave: number; note: string }
+const emitKeyRelease = (data: {
+  keyData: { keyIndex: number; octave: number; note: string, itemKey: string }
   originalEvent: MouseEvent
 }) => {
-  console.log('Key Released:', payload.keyData)
+  if (activeNotes.has(data.keyData.note)) {
+    const synth = activeNotes.get(data.keyData.note);
+    synth.triggerRelease();
+    activeNotes.delete(data.keyData.note);
+  }
+  console.log('Key Released:', data.keyData)
 }
 
 const activeKeys = new Map<
@@ -200,7 +249,6 @@ const handlePointerMove = (event: PointerEvent) => {
   if (previousKey) { //在按键区域，并且有上一个按键
     const currentKey = result.itemKey
     if (previousKey.itemKey !== currentKey) { //当前的key和上一个不一样
-      // console.log("move2: ", previousKey, currentKey)
       if (pressedKeys.value.has(previousKey.itemKey)) {  //并且上一个按键还没松开
         releaseKey(previousKey, event)
       }
@@ -255,6 +303,12 @@ onBeforeUnmount(() => {
     pianoElement.value.removeEventListener('pointerup', handlePointerUp);
   }
 });
+
+document.addEventListener('touchstart', () => {
+  if (Tone.context.state !== 'running') {
+    Tone.context.resume();
+  }
+}, { once: true });
 </script>
 
 <style scoped>

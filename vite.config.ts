@@ -14,5 +14,9 @@ export default defineConfig({
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url))
     }
+  },
+  server: {
+    host: '0.0.0.0', // 监听所有IP地址
+    port: 3000,      // 设置端口号，可改成其他端口
   }
 })

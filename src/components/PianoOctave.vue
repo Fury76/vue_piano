@@ -1,125 +1,117 @@
 <template>
-  <!-- 最前面三个特殊键 -->
-  <g v-if="showLowestKeys">
-    <WhiteKey
-      v-for="(note, index) in ['A', 'B']"
-      :key="`lowest-${note}`"
-      :keyIndex="index"
-      :octave="0"
-      :note="note"
-      :x="index * whiteKeyWidth"
-      :width="whiteKeyWidth"
-      :height="whiteKeyHeight"
-      :borderRadius="whiteKeyBorderRadius"
-      :fill="whiteKeyFill"
-      :pressedFill="whiteKeyPressedFill"
-      :strokeColor="whiteKeyStrokeColor"
-      :strokeWidth="whiteKeyStrokeWidth"
-      :isPressed="pressedKeys.has(JSON.stringify({ keyIndex: index, octave: 0, note }))"
-      :data-key="JSON.stringify({ keyIndex: index, octave: 0, note })"
-    />
-    <BlackKey
-      :key="'lowest-black-A#'"
-      :keyIndex="2"
-      :octave="0"
-      :note="'A#'"
-      :x="calculateBlackKeyPositions(whiteKeyWidth)[0]"
-      :width="blackKeyWidth"
-      :height="blackKeyHeight"
-      :borderRadius="blackKeyBorderRadius"
-      :fill="blackKeyFill"
-      :pressedFill="blackKeyPressedFill"
-      :strokeColor="blackKeyStrokeColor"
-      :strokeWidth="blackKeyStrokeWidth"
-      :isPressed="pressedKeys.has(JSON.stringify({ keyIndex: 2, octave: 0, note: 'A#' }))"
-      :data-key="JSON.stringify({ keyIndex: 2, octave: 0, note: 'A#' })"
-    />
-  </g>
-
-  <!-- 指定八度的白键和黑键 -->
-  <g v-for="octave in visibleOctaves" 
-  :key="`octave-${octave}`" 
-  :transform="`translate(${((octave - 1) * octaveWidth) + (showLowestKeys ? 2 * whiteKeyWidth : 0)}, 0)`">
-    <WhiteKey
-      v-for="(note, index) in whiteNotes"
-      :key="`white-${note}`"
-      :keyIndex="octave * 12 + index"
-      :octave="octave"
-      :note="note"
-      :x="index * whiteKeyWidth"
-      :width="whiteKeyWidth"
-      :height="whiteKeyHeight"
-      :borderRadius="whiteKeyBorderRadius"
-      :fill="whiteKeyFill"
-      :pressedFill="whiteKeyPressedFill"
-      :strokeColor="whiteKeyStrokeColor"
-      :strokeWidth="whiteKeyStrokeWidth"
-      :isPressed="pressedKeys.has(JSON.stringify({ keyIndex: octave * 12 + index, octave, note }))"
-      :data-key="JSON.stringify({ keyIndex: octave * 12 + index, octave, note })"
-    />
-    <BlackKey
-      v-for="(note, index) in blackNotes"
-      :key="`black-${note}`"
-      :keyIndex="octave * 12 + whiteNotes.indexOf(note.replace('#', '')) + 1"
-      :octave="octave"
-      :note="note"
-      :x="blackKeyPositions[index]"
-      :width="blackKeyWidth"
-      :height="blackKeyHeight"
-      :borderRadius="blackKeyBorderRadius"
-      :fill="blackKeyFill"
-      :pressedFill="blackKeyPressedFill"
-      :strokeColor="blackKeyStrokeColor"
-      :strokeWidth="blackKeyStrokeWidth"
-      :isPressed="pressedKeys.has(JSON.stringify({ keyIndex: octave * 12 + whiteNotes.indexOf(note.replace('#', '')) + 1, octave, note }))"
-      :data-key="JSON.stringify({ keyIndex: octave * 12 + whiteNotes.indexOf(note.replace('#', '')) + 1, octave, note })"
-    />
-  </g>
-
-  <!-- 最后一个特殊键 -->
-  <g v-if="showHighestKey" 
-  :transform="`translate(${(visibleOctaves.length * octaveWidth) + (showLowestKeys ? (2 * whiteKeyWidth) : 0)}, 0)`">
-    <WhiteKey
-      :key="`highest-C8`"
-      :keyIndex="88"
-      :octave="8"
-      note="C"
-      :x="0"
-      :width="whiteKeyWidth"
-      :height="whiteKeyHeight"
-      :borderRadius="whiteKeyBorderRadius"
-      :fill="whiteKeyFill"
-      :pressedFill="whiteKeyPressedFill"
-      :strokeColor="whiteKeyStrokeColor"
-      :strokeWidth="whiteKeyStrokeWidth"
-      :isPressed="pressedKeys.has(JSON.stringify({ keyIndex: 88, octave: 8, note: 'C' }))"
-      :data-key="JSON.stringify({ keyIndex: 88, octave: 8, note: 'C' })"
-    />
-  </g>
-  <!-- 动态显示分区 -->
-  <g v-if="showSections">
-    <rect
-      v-for="(section, index) in calculatedSections"
-      :key="section.name"
-      :x="section.start * whiteKeyWidth"
-      y="0"
-      :width="(section.end - section.start + 1) * whiteKeyWidth"
-      height="140"
-      fill="none"
-      stroke="red"
-      stroke-width="1"
-    />
-    <text
-      v-for="(section, index) in calculatedSections"
-      :key="`text-${section.name}`"
-      :x="section.start * whiteKeyWidth + ((section.end - section.start + 1) * whiteKeyWidth) / 2"
-      y="15"
-      text-anchor="middle"
-      font-size="12"
-      fill="red"
-    >
-      {{ section.name + section.start + "|" + section.end }}
-    </text>
+  <g>
+    <!-- 显示最低分区的特殊键 -->
+    <g v-if="octaveIndex === visibleOctaves[0] && octaveIndex === 0">
+      <WhiteKey
+        v-for="(note, index) in ['A', 'B']"
+        :key="`lowest-${note}`"
+        :note="note"
+        :octave="0"
+        :x="calculatedKeyX(octaveIndex, index)"
+        :width="whiteKeyWidth"
+        :height="whiteKeyHeight"
+        :borderRadius="whiteKeyBorderRadius"
+        :fill="whiteKeyFill"
+        :pressedFill="whiteKeyPressedFill"
+        :strokeColor="whiteKeyStrokeColor"
+        :strokeWidth="whiteKeyStrokeWidth"
+        :isPressed="pressedKeys.has(JSON.stringify({ keyIndex: index, octave: 0, note: note+0, scaleNote: note }))"
+        :data-key="JSON.stringify({ keyIndex: index, octave: 0, note: note+0, scaleNote: note})"
+      />
+      <BlackKey
+        :key="'lowest-black-A#'"
+        :note="'A#'"
+        :x="whiteKeyWidth - (whiteKeyWidth / 4)"
+        :octave="0"
+        :width="blackKeyWidth"
+        :height="blackKeyHeight"
+        :borderRadius="blackKeyBorderRadius"
+        :fill="blackKeyFill"
+        :pressedFill="blackKeyPressedFill"
+        :strokeColor="blackKeyStrokeColor"
+        :strokeWidth="blackKeyStrokeWidth"
+        :isPressed="pressedKeys.has(JSON.stringify({ keyIndex: 2, octave: 0, note: 'A#0', scaleNote: 'A#'}))"
+        :data-key="JSON.stringify({ keyIndex: 2, octave: 0, note: 'A#0', scaleNote: 'A#'  })"
+      />
+    </g>
+    <!-- 普通八度白键和黑键 -->
+    <g v-else-if="octaveIndex !== 8">
+      <WhiteKey
+        v-for="(note, index) in whiteNotes"
+        :key="`white-${note}`"
+        :keyIndex="octaveIndex * 12 + index"
+        :octave="octaveIndex"
+        :note="note"
+        :x="calculatedKeyX(octaveIndex, index)"
+        :width="whiteKeyWidth"
+        :height="whiteKeyHeight"
+        :borderRadius="whiteKeyBorderRadius"
+        :fill="whiteKeyFill"
+        :pressedFill="whiteKeyPressedFill"
+        :strokeColor="whiteKeyStrokeColor"
+        :strokeWidth="whiteKeyStrokeWidth"
+        :isPressed="pressedKeys.has(JSON.stringify({ keyIndex: octaveIndex * 12 + index, octave: octaveIndex, note: note+octaveIndex, scaleNote: note }))"
+        :data-key="JSON.stringify({ keyIndex: octaveIndex * 12 + index, octave: octaveIndex, note: note+octaveIndex, scaleNote: note  })"
+      />
+      <BlackKey
+        v-for="(note, index) in blackNotes"
+        :key="`black-${note}`"
+        :keyIndex="octaveIndex * 12 + whiteNotes.indexOf(note.replace('#', '')) + 1"
+        :octave="octaveIndex"
+        :note="note"
+        :x="caculatedBlackX(index)"
+        :width="blackKeyWidth"
+        :height="blackKeyHeight"
+        :borderRadius="blackKeyBorderRadius"
+        :fill="blackKeyFill"
+        :pressedFill="blackKeyPressedFill"
+        :strokeColor="blackKeyStrokeColor"
+        :strokeWidth="blackKeyStrokeWidth"
+        :isPressed="pressedKeys.has(JSON.stringify({ keyIndex: octaveIndex * 12 + whiteNotes.indexOf(note.replace('#', '')) + 1, octave: octaveIndex, note: note+octaveIndex, scaleNote: note  }))"
+        :data-key="JSON.stringify({ keyIndex: octaveIndex * 12 + whiteNotes.indexOf(note.replace('#', '')) + 1, octave: octaveIndex, note: note+octaveIndex, scaleNote: note  })"
+      />
+    </g>
+        <!-- 最后一个特殊键 -->
+    <g v-if="octaveIndex === visibleOctaves[visibleOctaves.length - 1] && octaveIndex === 8">
+      <WhiteKey
+        :key="`highest-C8`"
+        note="C"
+        :octave="8"
+        :x="calculatedKeyX(octaveIndex, 0)"
+        :width="whiteKeyWidth"
+        :height="whiteKeyHeight"
+        :borderRadius="whiteKeyBorderRadius"
+        :fill="whiteKeyFill"
+        :pressedFill="whiteKeyPressedFill"
+        :strokeColor="whiteKeyStrokeColor"
+        :strokeWidth="whiteKeyStrokeWidth"
+        :isPressed="pressedKeys.has(JSON.stringify({ keyIndex: 88, octave: octaveIndex, note: 'C8', scaleNote: 'C'  }))"
+        :data-key="JSON.stringify({ keyIndex: 88, octave: octaveIndex, note: 'C8', scaleNote: 'C'  })"
+      />
+    </g>
+    <!-- 分区显示（如果非边界 octave） -->
+    <g v-if="showSections && !isBoundaryOctave">
+      <rect
+        :key="calculatedSection(octaveIndex).name"
+        :x="calculatedSection(octaveIndex).start"
+        :y="-(whiteKeyHeight * 0.1)"
+        :width="octaveWidth"
+        :height="whiteKeyHeight + (whiteKeyHeight * 0.1)"
+        fill="none"
+        stroke="red"
+        stroke-width="1"
+      />
+      <text
+        :key="`text-${calculatedSection(octaveIndex)}`"
+        :x="calculatedSection(octaveIndex).start + octaveWidth / 2"
+        :y="-(whiteKeyHeight * 0.1) / 2 / 2"
+        text-anchor="middle"
+        :font-size="whiteKeyHeight * 0.06"
+        fill="red"
+      >
+        {{ calculatedSection(octaveIndex).name }}
+      </text>
+    </g>
   </g>
 </template>
 
@@ -130,11 +122,7 @@ import BlackKey from './BlackKey.vue';
 
 const props = withDefaults(defineProps<{
   octaveIndex: number;
-  startOctave?: number;
   pressedKeys: Map<string, boolean>;
-  visibleOctaves?: number[]; // 指定显示的八度
-  showLowestKeys?: boolean; // 是否显示最前面三个键
-  showHighestKey?: boolean; // 是否显示最后一个键
   whiteKeyWidth?: number;
   whiteKeyHeight?: number;
   whiteKeyBorderRadius?: number;
@@ -149,11 +137,12 @@ const props = withDefaults(defineProps<{
   blackKeyPressedFill?: string;
   blackKeyStrokeColor?: string;
   blackKeyStrokeWidth?: number;
-  sectionNames?: string[]; // 分区名称列表
+  visibleOctaves: number[]; // 父组件传入的可见八度
+  sectionTexts?: string[];
   showSections?: boolean;
 }>(), {
-  visibleOctaves: () => [1,2,3, 4, 5,6,7],
-  sectionNames: () => ['大字1组', '大字组', '小字组', '小字1组', '小字2组', '小字3组', '小字4组'],
+  sectionTexts: () => ["大字1组", '大字组', '小字组', '小字1组', '小字2组', '小字3组', '小字4组'],
+  showSections: false,
   whiteKeyWidth: 23,
   whiteKeyHeight: 120,
   whiteKeyBorderRadius: 3,
@@ -168,41 +157,80 @@ const props = withDefaults(defineProps<{
   blackKeyPressedFill: 'url(#blackKeyPressedGradient)',
   blackKeyStrokeColor: '#000',
   blackKeyStrokeWidth: 1,
-  showLowestKeys: true,
-  showHighestKey: true,
 });
 
-// 动态计算 octaveWidth
-const octaveWidth = computed(() => props.whiteKeyWidth * 7);
 
 const whiteNotes = ['C', 'D', 'E', 'F', 'G', 'A', 'B'];
 const blackNotes = ['C#', 'D#', 'F#', 'G#', 'A#'];
-const blackKeyPositions = computed(() => calculateBlackKeyPositions(props.whiteKeyWidth));
+const blackKeyPositions = computed(() => calculateBlackKeyPositions());
+const caculatedBlackX = computed(() => {
+  return (noteIndex: number) => {
+    return blackKeyPositions.value[noteIndex]
+  }  
+})
+// 默认属性
+const whiteKeyWidth = props.whiteKeyWidth || 23;
+const octaveWidth = whiteKeyWidth * 7;
 
-// 计算黑键相对位置的函数
-function calculateBlackKeyPositions(whiteKeyWidth: number): number[] {
-  // 定义黑键在每个八度内的相对位置，单位为白键宽度
-  const keyOffsets = [1, 2, 4, 5, 6]; // 表示 C#, D#, F#, G#, A# 的相对位置
+// 判断是否为边界分区（最低或最高）
+const isBoundaryOctave = computed(() => props.octaveIndex === 0 || props.octaveIndex === 8);
 
-  // 动态计算黑键的位置，将其定位在两个白键之间的中心
-  return keyOffsets.map(offset => offset * whiteKeyWidth - (whiteKeyWidth / 4));
-}
+const calculatedSection = computed(() => {
+  return (octaveIndex: number) => {
+    return {name: props.sectionTexts[octaveIndex-1], start: calculatedOctaveX.value, end: calculatedOctaveX.value + octaveWidth}
+  }
+})
 
-// 基于白键计算分区信息
-const calculatedSections = computed(() => {
-  const firstFullOctaveIndex = props.showLowestKeys ? 2 : 0; // 如果显示最前面三个键，从 C 开始计算
-  return props.visibleOctaves.map((octave, octaveIndex) => {
-    const octaveStartIndex = firstFullOctaveIndex + octaveIndex * 7; // 每八度 7 个白键
-    const octaveEndIndex = octaveStartIndex + 6; // 每八度最后一个白键的位置
-
-    return {
-      name: props.sectionNames[octaveIndex] || `Octave ${octave}`,
-      start: octaveStartIndex,
-      end: octaveEndIndex,
-    };
-  });
+const calculatedOctaveX = computed(() => {
+  let startOffset = 0
+    if (props.octaveIndex !== 0) {
+      startOffset = props.visibleOctaves[0] === 0 ? 2 * props.whiteKeyWidth : 0;
+    }
+    // 当前 octave 的起始 x 值
+    const skipWidth = skippedOctavesCount.value * octaveWidth
+    let x = 0;
+    if (props.octaveIndex !== 0) {
+      x = startOffset + (props.octaveIndex - 1) * props.whiteKeyWidth * 7 - skipWidth;
+    }
+    return x
 });
 
+const skippedOctavesCount = computed(() => {
+  // 计算跳过的分区数量
+  let skippedOctavesCount = 0;
+  for (let i = props.visibleOctaves[0]; i < props.octaveIndex; i++) {
+    if (!props.visibleOctaves.includes(i)) {
+      skippedOctavesCount++;
+    }
+  }
+  return skippedOctavesCount
+})
+
+const calculatedKeyX = computed(() => {
+  return (octaveIndex: number, noteIndex: number) => {
+    // 判断是否有前置特殊分区（如前两个白键）
+    let startOffset = 0
+    if (octaveIndex !== 0) {
+      startOffset = props.visibleOctaves[0] === 0 ? 2 * props.whiteKeyWidth : 0;
+    }
+    
+    // 当前 octave 的起始 x 值
+    const octaveX = calculatedOctaveX.value
+
+    // 每个白键的 x 值
+    return octaveX + noteIndex * props.whiteKeyWidth;
+  };
+});
+
+
+// 计算黑键位置
+function calculateBlackKeyPositions(): number[] {
+  const keyOffsets = [1, 2, 4, 5, 6]; // 黑键相对于白键的默认位置
+  const octaveX = calculatedOctaveX.value
+
+  // 返回调整后的黑键位置
+  return keyOffsets.map(offset => octaveX + offset * whiteKeyWidth - (whiteKeyWidth / 4));
+}
 
 
 </script>

@@ -8,6 +8,7 @@
       :fill="isPressed ? pressedFill : fill"
       :stroke="strokeColor"
       :stroke-width="strokeWidth"
+      key-type="black"
       :class="{ 'key-pressed': isPressed }"
     />
   </PianoKey>
@@ -18,7 +19,6 @@ import PianoKey from './PianoKey.vue';
 import { defineProps, withDefaults } from 'vue';
 
 const props = withDefaults(defineProps<{
-  keyIndex: number;
   octave: number;
   note: string;
   x: number;

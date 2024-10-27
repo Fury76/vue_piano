@@ -15,6 +15,7 @@
   },
   "dependencies": {
     "pinia": "^2.2.4",
+    "tone": "^15.0.4",
     "vue": "^3.5.12"
   },
   "devDependencies": {

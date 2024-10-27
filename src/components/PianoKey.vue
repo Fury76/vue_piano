@@ -8,7 +8,6 @@
 import { defineProps } from 'vue'
 
 const props = defineProps<{
-  keyIndex: number
   octave: number
   note: string
   x: number
