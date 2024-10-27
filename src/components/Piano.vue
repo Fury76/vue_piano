@@ -39,81 +39,15 @@
       </defs>
 
       <g transform="translate(8, 30)">
-        <!-- 添加最低音部分的键 -->
-        <WhiteKey
-          v-for="(note, index) in ['A', 'B']"
-          :key="`lowest-white-${note}`"
-          :keyIndex="index"
-          :octave="0"
-          :note="note"
-          :x="index * 24"
-          :isPressed="
-            pressedKeys.has(
-              JSON.stringify({ keyIndex: index, octave: 0, note }),
-            )
-          "
-          :data-key="JSON.stringify({ keyIndex: index, octave: 0, note })"
-        />
-        <BlackKey
-          :key="'lowest-black-A#'"
-          :keyIndex="1"
-          :octave="0"
-          :note="'A#'"
-          :x="18"
-          :isPressed="
-            pressedKeys.has(
-              JSON.stringify({ keyIndex: 1, octave: 0, note: 'A#' }),
-            )
-          "
-          :data-key="JSON.stringify({ keyIndex: 1, octave: 0, note: 'A#' })"
-        />
         <!-- 7个八度 -->
         <PianoOctave
           v-for="octave in 7"
           :key="`octave-${octave}`"
           :octaveIndex="octave"
           :startOctave="0"
+          :show-sections="showSections"
           :pressedKeys="pressedKeys"
         />
-        <!-- 最高音部分的键 -->
-        <WhiteKey
-          v-for="(note, index) in ['C']"
-          :key="`highest-white-${note}`"
-          :keyIndex="84 + index"
-          :octave="8"
-          :note="note"
-          :x="1224 + index * 24"
-          :isPressed="
-            pressedKeys.has(
-              JSON.stringify({ keyIndex: 84 + index, octave: 8, note }),
-            )
-          "
-          :data-key="JSON.stringify({ keyIndex: 84 + index, octave: 8, note })"
-        />
-      </g>
-      <g v-if="showSections" transform="translate(8, 10)">
-        <rect
-          v-for="(section, index) in sections"
-          :key="section.name"
-          :x="section.start * 24"
-          y="0"
-          :width="(section.end - section.start + 1) * 24"
-          height="140"
-          fill="none"
-          stroke="red"
-          stroke-width="1"
-        />
-        <text
-          v-for="(section, index) in sections"
-          :key="`text-${section.name}`"
-          :x="section.start * 24 + ((section.end - section.start + 1) * 24) / 2"
-          y="15"
-          text-anchor="middle"
-          font-size="12"
-          fill="red"
-        >
-          {{ section.name }}
-        </text>
       </g>
     </svg>
   </div>
@@ -131,7 +65,6 @@ import {
 import PianoOctave from './PianoOctave.vue'
 import WhiteKey from './WhiteKey.vue'
 import BlackKey from './BlackKey.vue'
-import { release } from 'os'
 
 const props = withDefaults(
   defineProps<{
