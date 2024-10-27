@@ -1,5 +1,5 @@
 <template>
-  <g :transform="`translate(${(octaveIndex * 168) - 120}, 0)`">
+  <g :transform="`translate(${octaveIndex * 168 - 120}, 0)`">
     <WhiteKey
       v-for="(note, index) in whiteNotes"
       :key="`white-${note}`"
@@ -7,18 +7,50 @@
       :octave="octaveIndex + startOctave"
       :note="note"
       :x="index * 24"
-      :isPressed="pressedKeys.has(JSON.stringify({ keyIndex: octaveIndex * 12 + index, octave: octaveIndex + startOctave, note }))"
-      :data-key="JSON.stringify({ keyIndex: octaveIndex * 12 + index, octave: octaveIndex + startOctave, note })"
+      :isPressed="
+        pressedKeys.has(
+          JSON.stringify({
+            keyIndex: octaveIndex * 12 + index,
+            octave: octaveIndex + startOctave,
+            note,
+          }),
+        )
+      "
+      :data-key="
+        JSON.stringify({
+          keyIndex: octaveIndex * 12 + index,
+          octave: octaveIndex + startOctave,
+          note,
+        })
+      "
     />
     <BlackKey
       v-for="(note, index) in blackNotes"
       :key="`black-${note}`"
-      :keyIndex="octaveIndex * 12 + whiteNotes.indexOf(note.replace('#', '')) + 1"
+      :keyIndex="
+        octaveIndex * 12 + whiteNotes.indexOf(note.replace('#', '')) + 1
+      "
       :octave="octaveIndex + startOctave"
       :note="note"
       :x="blackKeyPositions[index]"
-      :isPressed="pressedKeys.has(JSON.stringify({ keyIndex: octaveIndex * 12 + whiteNotes.indexOf(note.replace('#', '')) + 1, octave: octaveIndex + startOctave, note }))"
-      :data-key="JSON.stringify({ keyIndex: octaveIndex * 12 + whiteNotes.indexOf(note.replace('#', '')) + 1, octave: octaveIndex + startOctave, note })"
+      :isPressed="
+        pressedKeys.has(
+          JSON.stringify({
+            keyIndex:
+              octaveIndex * 12 + whiteNotes.indexOf(note.replace('#', '')) + 1,
+            octave: octaveIndex + startOctave,
+            note,
+          }),
+        )
+      "
+      :data-key="
+        JSON.stringify({
+          keyIndex:
+            octaveIndex * 12 + whiteNotes.indexOf(note.replace('#', '')) + 1,
+          octave: octaveIndex + startOctave,
+          note,
+        })
+      "
     />
   </g>
 </template>

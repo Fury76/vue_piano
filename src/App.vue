@@ -1,8 +1,10 @@
 <template>
   <div class="app">
     <h1>Vue 3 Piano Component</h1>
-    <button @click="toggleSections">{{ showSections ? '隐藏分区' : '显示分区' }}</button>
-    <Piano :showSections="showSections" @keyEvent="handleKeyEvent"/>
+    <button @click="toggleSections">
+      {{ showSections ? '隐藏分区' : '显示分区' }}
+    </button>
+    <Piano :showSections="showSections" @keyEvent="handleKeyEvent" />
   </div>
 </template>
 
@@ -18,7 +20,6 @@ const toggleSections = () => {
 const handleKeyEvent = (event: any) => {
   console.log(event)
 }
-
 </script>
 
 <style>
