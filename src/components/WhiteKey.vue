@@ -13,7 +13,7 @@
     />
     <text
       :x="width / 2"
-      :y="height - 5"
+      :y="height - height * 0.12"
       text-anchor="middle"
       font-size="10"
       fill="#888"

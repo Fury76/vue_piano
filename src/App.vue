@@ -4,7 +4,11 @@
     <button @click="toggleSections">
       {{ showSections ? '隐藏分区' : '显示分区' }}
     </button>
-    <Piano :showSections="showSections" @keyEvent="handleKeyEvent" />
+    <Piano :showSections="showSections" :pianoHeight="220" :pianoWidth="1416" @keyEvent="handleKeyEvent" />
+    <div style="width: 320px; height: 125px; background-color:aqua">
+      <Piano :showSections="showSections" @keyEvent="handleKeyEvent" />
+    </div>
+    
   </div>
 </template>
 

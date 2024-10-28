@@ -6,47 +6,30 @@
   @mousedown="onMouseDown"
   @mouseup="onMouseUp"
   @touchstart="onTouchStart"
+  @touchmove="onTouchMove"
   @touchend="onTouchEnd"
   >
-    <svg width="1416" height="220" viewBox="0 0 1416 220">
+    <svg :width="1196" :height="120" viewBox="0 0 {{ pianoWidth }} {{ pianoHeight }}">
       <defs>
         <linearGradient id="whiteKeyGradient" x1="0%" y1="0%" x2="100%" y2="0%">
           <stop offset="0%" style="stop-color: #f0f0f0; stop-opacity: 1" />
           <stop offset="100%" style="stop-color: #ffffff; stop-opacity: 1" />
         </linearGradient>
-        <linearGradient
-          id="whiteKeyPressedGradient"
-          x1="0%"
-          y1="0%"
-          x2="100%"
-          y2="0%"
-        >
+        <linearGradient id="whiteKeyPressedGradient" x1="0%" y1="0%" x2="100%" y2="0%">
           <stop offset="0%" style="stop-color: #e0e0e0; stop-opacity: 1" />
           <stop offset="100%" style="stop-color: #f0f0f0; stop-opacity: 1" />
         </linearGradient>
-        <linearGradient
-          id="blackKeyGradient"
-          x1="0%"
-          y1="0%"
-          x2="100%"
-          y2="100%"
-        >
+        <linearGradient id="blackKeyGradient" x1="0%" y1="0%" x2="100%" y2="100%">
           <stop offset="0%" style="stop-color: #000000; stop-opacity: 1" />
           <stop offset="100%" style="stop-color: #404040; stop-opacity: 1" />
         </linearGradient>
-        <linearGradient
-          id="blackKeyPressedGradient"
-          x1="0%"
-          y1="0%"
-          x2="100%"
-          y2="100%"
-        >
+        <linearGradient id="blackKeyPressedGradient" x1="0%" y1="0%" x2="100%" y2="100%">
           <stop offset="0%" style="stop-color: #202020; stop-opacity: 1" />
           <stop offset="100%" style="stop-color: #606060; stop-opacity: 1" />
         </linearGradient>
       </defs>
 
-      <g transform="translate(8, 30)">
+      <g :transform="`translate(0, ${whiteKeyHeight * 0})`">
         <PianoOctave
           v-for="octaveIndex in visibleOctaves"
           :key="`octave-${octaveIndex}`"
@@ -77,16 +60,22 @@ const activeNotes = new Map();
 
 const props = withDefaults(
   defineProps<{
+    whiteKeyHeight?: number,
     showSections?: boolean,
     showHighestKey?: boolean,
     showLowestKeys?: boolean,
     visibleOctaves?: number[],
+    pianoWidth?: number,
+    pianoHeight?: number,
   }>(),
   {
     visibleOctaves: () => [0, 1,2, 3, 4, 5, 6, 7, 8],
     showHighestKey: true,
     showLowestKeys: false,
     showSections: false,
+    pianoWidth: 1416,
+    pianoHeight: 220,
+    whiteKeyHeight: 120,
   },
 )
 
@@ -171,20 +160,30 @@ const onMouseUp = () => {
   }
 }
 
-const onTouchStart = () => {
-  // 处理移动设备的长按
+const onTouchStart = (event: TouchEvent) => {
+  // 仅在长按时阻止默认行为
   longPressTimer.value = window.setTimeout(() => {
+    event.preventDefault(); // 阻止长按的默认行为
     console.log('Long press detected on touch')
-  }, 500)
+  }, 300)
 }
 
-const onTouchEnd = () => {
+const onTouchEnd = (event: TouchEvent) => {
   // 触摸结束时清除长按计时器
   if (longPressTimer.value) {
     clearTimeout(longPressTimer.value)
     longPressTimer.value = null
   }
 }
+
+const onTouchMove = (event: TouchEvent) => {
+  // 在移动时清除长按计时器，允许拖动
+  if (longPressTimer.value) {
+    clearTimeout(longPressTimer.value)
+    longPressTimer.value = null
+  }
+}
+
 // 处理按键按下的事件
 const emitKeyPress = (data: {
   keyData: { keyIndex: number; octave: number; note: string, itemKey: string }
@@ -313,12 +312,9 @@ document.addEventListener('touchstart', () => {
 
 <style scoped>
 .piano-container {
-  width: 100%;
-  overflow-x: auto;
-  background: linear-gradient(to bottom, #4a4a4a, #2a2a2a);
-  padding: 20px;
+  /*overflow-x: auto;*/
   border-radius: 10px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  border: 1px solid #ccc;
   user-select: none; /* 防止文本选择 */
 }
 </style>
