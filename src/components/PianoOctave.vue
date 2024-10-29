@@ -91,15 +91,24 @@
     </g>
     <!-- 分区显示（如果非边界 octave） -->
     <g v-if="showSections && !isBoundaryOctave">
-      <rect
+      <path
         :key="calculatedSection(octaveIndex).name"
-        :x="calculatedSection(octaveIndex).start"
-        :y="-(whiteKeyHeight * 0.1)"
-        :width="octaveWidth"
-        :height="whiteKeyHeight + (whiteKeyHeight * 0.1)"
+        :d="`
+          M${calculatedSection(octaveIndex).start + topLeftRadius},${-(whiteKeyHeight * 0.1)}
+          h${octaveWidth - topLeftRadius - topRightRadius} 
+          a${topRightRadius},${topRightRadius} 0 0 1 ${topRightRadius},${topRightRadius}
+          v${whiteKeyHeight * 1.1 - topRightRadius - bottomRightRadius}
+          a${bottomRightRadius},${bottomRightRadius} 0 0 1 -${bottomRightRadius},${bottomRightRadius}
+          h-${octaveWidth - bottomRightRadius - bottomLeftRadius}
+          a${bottomLeftRadius},${bottomLeftRadius} 0 0 1 -${bottomLeftRadius},-${bottomLeftRadius}
+          v-${whiteKeyHeight * 1.1 - bottomLeftRadius - topLeftRadius}
+          a${topLeftRadius},${topLeftRadius} 0 0 1 ${topLeftRadius},-${topLeftRadius}
+          Z
+        `"
         fill="none"
         stroke="red"
         stroke-width="1"
+        stroke-linejoin="round"
       />
       <text
         :key="`text-${calculatedSection(octaveIndex)}`"
@@ -119,7 +128,10 @@
 import { defineProps, withDefaults, computed } from 'vue';
 import WhiteKey from './WhiteKey.vue';
 import BlackKey from './BlackKey.vue';
-
+const bottomRightRadius = 2
+const bottomLeftRadius = 2
+const topLeftRadius = 8 
+const topRightRadius = 8 
 const props = withDefaults(defineProps<{
   octaveIndex: number;
   pressedKeys: Map<string, boolean>;

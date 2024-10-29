@@ -1,19 +1,14 @@
 <template>
   <div ref="pianoElement" 
   class="piano-container" 
+  :style="{ overflowX: props.allowScroll ? 'auto' : 'hidden' }"
   @dblclick="onDoubleClick"
-  @contextmenu="onRightClick"
-  @mousedown="onMouseDown"
-  @mouseup="onMouseUp"
-  @touchstart="onTouchStart"
-  @touchmove="onTouchMove"
-  @touchend="onTouchEnd"
   >
-    <svg :width="1196" :height="120" viewBox="0 0 {{ pianoWidth }} {{ pianoHeight }}">
+    <svg :width="pianoWidth" :height="pianoHeight + headerHeight" :viewBox="`0 0 ${pianoWidth} ${pianoHeight + headerHeight}`">
       <defs>
         <linearGradient id="whiteKeyGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-          <stop offset="0%" style="stop-color: #f0f0f0; stop-opacity: 1" />
-          <stop offset="100%" style="stop-color: #ffffff; stop-opacity: 1" />
+          <stop offset="0%" style="stop-color: #f0f0f0; stop-opacity: 20" />
+          <stop offset="100%" style="stop-color: #ffffff; stop-opacity: 20" />
         </linearGradient>
         <linearGradient id="whiteKeyPressedGradient" x1="0%" y1="0%" x2="100%" y2="0%">
           <stop offset="0%" style="stop-color: #e0e0e0; stop-opacity: 1" />
@@ -29,12 +24,16 @@
         </linearGradient>
       </defs>
 
-      <g :transform="`translate(0, ${whiteKeyHeight * 0})`">
+      <g :transform="`translate(0, ${headerHeight})`">
         <PianoOctave
           v-for="octaveIndex in visibleOctaves"
           :key="`octave-${octaveIndex}`"
           :octaveIndex="octaveIndex"
           :pressedKeys="pressedKeys"
+          :whiteKeyHeight="whiteKeyHeight"
+          :whiteKeyWidth="whiteKeyWidth"
+          :blackKeyWidth="blackKeyWidth"
+          :blackKeyHeight="blackKeyHeight"
           :showSections="showSections"
           :visibleOctaves="visibleOctaves"
         />
@@ -52,6 +51,7 @@ import {
   withDefaults,
   onBeforeUnmount,
   onMounted,
+  watch,
 } from 'vue'
 import PianoOctave from './PianoOctave.vue'
 
@@ -60,7 +60,13 @@ const activeNotes = new Map();
 
 const props = withDefaults(
   defineProps<{
+    allowScroll?: boolean,
+    displayHeader?: boolean,
+    startNote?: string,
     whiteKeyHeight?: number,
+    whiteKeyWidth?: number,
+    blackKeyWidth?: number,
+    blackKeyHeight?: number,
     showSections?: boolean,
     showHighestKey?: boolean,
     showLowestKeys?: boolean,
@@ -70,15 +76,24 @@ const props = withDefaults(
   }>(),
   {
     visibleOctaves: () => [0, 1,2, 3, 4, 5, 6, 7, 8],
+    allowScroll: true,
+    displayHeader: true,
+    whiteKeyWidth: 23,
+    startNote: 'A0',
+    blackKeyWidth: 13,
+    blackKeyHeight: 80,
     showHighestKey: true,
     showLowestKeys: false,
     showSections: false,
-    pianoWidth: 1416,
-    pianoHeight: 220,
+    pianoWidth: 52 * 23, 
+    pianoHeight: 120,
     whiteKeyHeight: 120,
   },
 )
 
+const headerHeight = computed(() => {
+    return props.displayHeader ? props.whiteKeyHeight * 0.1 : 0
+})
 const pianoElement = ref<HTMLElement | null>(null); // 引用目标 DOM 元素
 const pressedKeys = ref<Map<string, boolean>>(new Map<string, boolean>())
 
@@ -104,6 +119,23 @@ defineEmits<{
     originalEvent: MouseEvent,
   ): void
 }>()
+
+// 计算 startNote 的位置
+const calculateStartPosition = (note: string): number => {
+  const noteOrder = ['C', 'D', 'E', 'F',  'G',  'A',  'B'];
+  const octave = parseInt(note.toUpperCase().slice(-1), 10);
+  const noteName = note.toUpperCase().slice(0, -1);
+  const noteIndex = noteOrder.indexOf(note.toUpperCase().slice(0, -1));
+  let skipWhiteKey = 0
+  let preSkipWhiteKey = 0
+  if (octave === 0) {
+    preSkipWhiteKey = noteName === "B" ? 1 : 0
+    return preSkipWhiteKey * props.whiteKeyWidth
+  } 
+  
+  skipWhiteKey = (octave - 1) * 7 + noteIndex + 2
+  return skipWhiteKey * props.whiteKeyWidth
+}
 
 // 公共函数：从事件中提取键数据
 const getKeyDataFromEvent = (event: MouseEvent) => {
@@ -135,53 +167,6 @@ const onDoubleClick = (event: MouseEvent) => {
   event.preventDefault()
   event.stopPropagation()
   return
-}
-
-const onRightClick = (event: MouseEvent) => {
-  event.preventDefault()
-  event.stopPropagation()
-}
-
-const longPressTimer = ref<number | null>(null)
-
-const onMouseDown = () => {
-  // 如果按下超过一定时间（如 500ms），则判断为长按
-  longPressTimer.value = window.setTimeout(() => {
-    // 阻止长按触发的操作
-    console.log('Long press detected')
-  }, 500)
-}
-
-const onMouseUp = () => {
-  // 释放时清除长按计时器
-  if (longPressTimer.value) {
-    clearTimeout(longPressTimer.value)
-    longPressTimer.value = null
-  }
-}
-
-const onTouchStart = (event: TouchEvent) => {
-  // 仅在长按时阻止默认行为
-  longPressTimer.value = window.setTimeout(() => {
-    event.preventDefault(); // 阻止长按的默认行为
-    console.log('Long press detected on touch')
-  }, 300)
-}
-
-const onTouchEnd = (event: TouchEvent) => {
-  // 触摸结束时清除长按计时器
-  if (longPressTimer.value) {
-    clearTimeout(longPressTimer.value)
-    longPressTimer.value = null
-  }
-}
-
-const onTouchMove = (event: TouchEvent) => {
-  // 在移动时清除长按计时器，允许拖动
-  if (longPressTimer.value) {
-    clearTimeout(longPressTimer.value)
-    longPressTimer.value = null
-  }
 }
 
 // 处理按键按下的事件
@@ -216,6 +201,25 @@ const activeKeys = new Map<
   { keyIndex: number; octave: number; note: string; itemKey: string }
 >()
 
+const handleContextMenu = (event: MouseEvent) => {
+  event.preventDefault()
+  event.stopPropagation()
+}
+
+const handleTouchStart = (event: TouchEvent) => {
+  event.preventDefault()
+  event.stopPropagation()
+}
+
+const handleTouchMove = (event: TouchEvent) => {
+    event.preventDefault()
+    event.stopPropagation()
+  if (event.touches.length > 1) {
+    event.preventDefault()
+    event.stopPropagation()
+  }
+}
+
 const handlePointerDown = (event: PointerEvent) => {
   event.preventDefault()
   event.stopPropagation()
@@ -232,6 +236,7 @@ const handlePointerDown = (event: PointerEvent) => {
 }
 
 const handlePointerMove = (event: PointerEvent) => {
+    console.log('pointer move', event.pointerId)
   if (pressedKeys.value.size === 0) {
     return
   }
@@ -262,6 +267,16 @@ const handlePointerMove = (event: PointerEvent) => {
   }
 }
 
+const handlePointerUp = (event: PointerEvent) => {
+  const result = getKeyDataFromEvent(event)
+  if (result) {
+    emitKeyRelease({ keyData: result, originalEvent: event })
+    pressedKeys.value.delete(result.itemKey) // 从 pressedKeys 中移除该按键
+  }
+
+  activeKeys.delete(event.pointerId) // 从 activeKeys 中移除该触控点
+}
+
 const pressKey = (keyData: { keyIndex: number; octave: number; note: string; itemKey: string }, event: PointerEvent) => {
   pressedKeys.value.set(keyData.itemKey, true) // 记录按键状态
   emitKeyPress({ keyData: keyData, originalEvent: event }) // 将键数据和事件一起传递
@@ -274,23 +289,29 @@ const releaseKey = (keyData: { keyIndex: number; octave: number; note: string; i
   activeKeys.delete(event.pointerId) // 从 activeKeys 中移除该触控点
 }
 
-const handlePointerUp = (event: PointerEvent) => {
-  const result = getKeyDataFromEvent(event)
-  if (result) {
-    emitKeyRelease({ keyData: result, originalEvent: event })
-    pressedKeys.value.delete(result.itemKey) // 从 pressedKeys 中移除该按键
+// 监听 startNote 的变化
+watch(() => props.startNote, (newStartNote) => {
+  if (pianoElement.value) {
+    const startPosition = calculateStartPosition(newStartNote || 'C1');
+    console.log('startPosition', startPosition)
+    pianoElement.value.scrollLeft = startPosition;
   }
-
-  activeKeys.delete(event.pointerId) // 从 activeKeys 中移除该触控点
-}
+});
 
 // 在组件挂载时添加事件监听
 onMounted(() => {
   if (pianoElement.value) {
+    const startPosition = calculateStartPosition(props.startNote);
+    pianoElement.value.scrollLeft = startPosition;
     // 在特定 DOM 元素上监听 pointer 事件
     pianoElement.value.addEventListener('pointerdown', handlePointerDown);
     pianoElement.value.addEventListener('pointermove', handlePointerMove);
     pianoElement.value.addEventListener('pointerup', handlePointerUp);
+    pianoElement.value.addEventListener('contextmenu', handleContextMenu);
+        // 确保阻止浏览器默认的滚动行为
+    pianoElement.value.addEventListener('touchstart', handleTouchStart);
+    pianoElement.value.addEventListener('touchmove', handleTouchMove);
+  
   }
 });
 
@@ -300,6 +321,7 @@ onBeforeUnmount(() => {
     pianoElement.value.removeEventListener('pointerdown', handlePointerDown);
     pianoElement.value.removeEventListener('pointermove', handlePointerMove);
     pianoElement.value.removeEventListener('pointerup', handlePointerUp);
+    pianoElement.value.removeEventListener('contextmenu', handleContextMenu);
   }
 });
 
@@ -308,13 +330,19 @@ document.addEventListener('touchstart', () => {
     Tone.context.resume();
   }
 }, { once: true });
+
 </script>
 
 <style scoped>
 .piano-container {
-  /*overflow-x: auto;*/
-  border-radius: 10px;
-  border: 1px solid #ccc;
-  user-select: none; /* 防止文本选择 */
+  line-height: 0;
+  -webkit-user-select: none; /* 禁用文本选择 */
+  user-select: none;
+  -webkit-touch-callout: none; /* 禁用长按菜单 */
+  scroll-behavior: smooth;
+  scrollbar-width: none; /* 适用于 Firefox，隐藏滚动条 */
+}
+.piano-container::-webkit-scrollbar {
+  display: none; /* 隐藏滚动条 (Webkit 浏览器) */
 }
 </style>

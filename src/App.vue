@@ -1,12 +1,13 @@
 <template>
   <div class="app">
-    <h1>Vue 3 Piano Component</h1>
+    <h1></h1>
     <button @click="toggleSections">
       {{ showSections ? '隐藏分区' : '显示分区' }}
     </button>
-    <Piano :showSections="showSections" :pianoHeight="220" :pianoWidth="1416" @keyEvent="handleKeyEvent" />
-    <div style="width: 320px; height: 125px; background-color:aqua">
-      <Piano :showSections="showSections" @keyEvent="handleKeyEvent" />
+
+    <button v-for="note in startNotes" @click="handleStartNoteClick(note)">{{ note }}</button>
+    <div style="width: 340px; height: 120px;">
+      <Piano :showSections="showSections" :startNote="startNote" :allowScroll="showSections" :displayHeader="true" :whiteKeyHeight="120" @keyEvent="handleKeyEvent" />
     </div>
     
   </div>
@@ -16,9 +17,17 @@
 import { ref } from 'vue'
 import Piano from './components/Piano.vue'
 
+const startNote = ref('A0')
+
+const startNotes = ['A0', 'C1', 'C2', 'C3', 'C4', 'C5', 'C6', 'C7']
 const showSections = ref(false)
 const toggleSections = () => {
   showSections.value = !showSections.value
+}
+
+const handleStartNoteClick = (note: string) => {
+  startNote.value = note
+  console.log(startNote.value)
 }
 
 const handleKeyEvent = (event: any) => {
