@@ -332,7 +332,11 @@ document.addEventListener('touchstart', () => {
 }, { once: true });
 
 </script>
-
+<script lang="ts">
+export default {
+  name: 'Piano',
+};
+</script>
 <style scoped>
 .piano-container {
   line-height: 0;
@@ -342,7 +346,5 @@ document.addEventListener('touchstart', () => {
   scroll-behavior: smooth;
   scrollbar-width: none; /* 适用于 Firefox，隐藏滚动条 */
 }
-.piano-container::-webkit-scrollbar {
-  display: none; /* 隐藏滚动条 (Webkit 浏览器) */
-}
+
 </style>
