@@ -73,6 +73,8 @@ const props = withDefaults(
     visibleOctaves?: number[],
     pianoWidth?: number,
     pianoHeight?: number,
+    currentSampleSet?: string, // 当前选择的音效组
+    samples?: { [note: string]: string[] }
   }>(),
   {
     visibleOctaves: () => [0, 1,2, 3, 4, 5, 6, 7, 8],
@@ -88,8 +90,55 @@ const props = withDefaults(
     pianoWidth: 52 * 23, 
     pianoHeight: 120,
     whiteKeyHeight: 120,
+    samples: () => ({}),
+    currentSampleSet: 'piano', 
   },
 )
+
+let playerPool: Tone.Players | null = null; // 用于存储加载好的音效
+
+// 用于生成音符路径的函数
+const generateDefaultSamples = (sampleSetName: string): { [note: string]: string } => {
+  const notes = [
+    "A0", "A#0", "B0", "C1", "C#1", "D1", "D#1", "E1", "F1", "F#1", "G1", "G#1",
+    // 继续添加其他八度音符，例如 C2, D2, E2, F2, ...
+  ];
+
+  const samples: { [note: string]: string } = {};
+  for (const note of notes) {
+    // 使用动态路径拼接
+    samples[note] = `/src/samples/${sampleSetName}/${note}.ogg`;
+  }
+  return samples;
+};
+
+// 获取当前选定的音效组
+const getCurrentSampleSet = (): { [note: string]: string } => {
+  // 如果有自定义的音效对象传入，则使用它
+  if (props.samples && props.samples[props.currentSampleSet]) {
+    return props.samples[props.currentSampleSet] as unknown as { [note: string]: string };
+  }
+
+  // 否则从预定义的音效组中选择
+  return generateDefaultSamples(props.currentSampleSet)
+};
+
+// 预加载音效
+const preloadSamples = () => {
+  const currentSamples = getCurrentSampleSet();
+
+  // 清除之前的音效池，防止内存泄漏
+  if (playerPool) {
+    playerPool.dispose();
+    playerPool = null;
+  }
+
+  // 加载新的音效池
+  console.log('currentSamples', currentSamples)
+  playerPool = new Tone.Players(currentSamples, () => {
+    console.log("All samples for the current set are loaded!");
+  }).toDestination();
+};
 
 const headerHeight = computed(() => {
     return props.displayHeader ? props.whiteKeyHeight * 0.1 : 0
@@ -174,12 +223,27 @@ const emitKeyPress = (data: {
   keyData: { keyIndex: number; octave: number; note: string, itemKey: string }
   originalEvent: MouseEvent
 }) => {
-  console.log(data.keyData.note)
-  if (!activeNotes.has(data.keyData.note)) {
-    // 创建一个新的合成器并启动音频播放
+  const note = data.keyData.note;
+  console.log('playerPool', playerPool)
+  console.log('has', playerPool?.has(note))
+  if (playerPool && playerPool.has(note) && !activeNotes.has(note)) {
+    // 使用预加载好的音效进行播放
+    const player = playerPool.player(note);
+    try {
+      player.start();
+      activeNotes.set(note, player);
+    } catch (error) {
+      const synth = new Tone.Synth().toDestination();
+      synth.triggerAttack(data.keyData.note);
+      activeNotes.set(data.keyData.note, synth);
+    }
+  } else if (!activeNotes.has(note)) {
+    // 使用默认的钢琴音色播放音符
     const synth = new Tone.Synth().toDestination();
     synth.triggerAttack(data.keyData.note);
     activeNotes.set(data.keyData.note, synth);
+  } else {
+    console.warn(`Sample for note ${note} is not loaded yet or does not exist`);
   }
   console.log('Key Pressed:', data.keyData)
 }
@@ -188,10 +252,16 @@ const emitKeyRelease = (data: {
   keyData: { keyIndex: number; octave: number; note: string, itemKey: string }
   originalEvent: MouseEvent
 }) => {
-  if (activeNotes.has(data.keyData.note)) {
-    const synth = activeNotes.get(data.keyData.note);
-    synth.triggerRelease();
-    activeNotes.delete(data.keyData.note);
+  const note = data.keyData.note;
+  if (activeNotes.has(note)) {
+    const player = activeNotes.get(note);
+    console.log('player', player)
+    if (player && 'stop' in player) {
+      player.stop(); // 调用 Player 的停止播放方法
+    } else if (player && 'triggerRelease' in player) {
+      (player as Tone.Synth).triggerRelease(); // 使用 Synth 的 triggerRelease 方法停止音符
+    }
+    activeNotes.delete(note);
   }
   console.log('Key Released:', data.keyData)
 }
@@ -298,8 +368,22 @@ watch(() => props.startNote, (newStartNote) => {
   }
 });
 
+// 监听音效组的变化
+watch(() => props.currentSampleSet, (newSampleSet) => {
+  console.log(`Switching to sample set: ${newSampleSet}`);
+  preloadSamples(); // 加载新的音效
+});
+
 // 在组件挂载时添加事件监听
 onMounted(() => {
+  preloadSamples();
+
+  const audioContext = Tone.getContext().rawContext;
+  if (audioContext.state !== 'running') {
+    audioContext.resume().then(() => {
+      console.log('AudioContext resumed on mount');
+    });
+  }
   if (pianoElement.value) {
     const startPosition = calculateStartPosition(props.startNote);
     pianoElement.value.scrollLeft = startPosition;
@@ -326,8 +410,9 @@ onBeforeUnmount(() => {
 });
 
 document.addEventListener('touchstart', () => {
-  if (Tone.context.state !== 'running') {
-    Tone.context.resume();
+  const audioContext = Tone.getContext().rawContext;
+  if (audioContext.state !== 'running') {
+    audioContext.resume();
   }
 }, { once: true });
 

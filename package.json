@@ -1,5 +1,5 @@
 {
-  "name": "vue-piano",
+  "name": "virtual-piano-vue",
   "version": "0.0.1",
   "description": "A virtual piano component for Vue 3 applications.",
   "main": "dist/index.js",
