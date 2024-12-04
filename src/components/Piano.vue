@@ -53,7 +53,6 @@ import {
   watch,
 } from 'vue'
 import PianoOctave from './PianoOctave.vue'
-import { release } from 'os';
 
 
 // 用于存储当前按下的音轨
@@ -75,6 +74,7 @@ const props = withDefaults(
     visibleOctaves: () => [0, 1,2, 3, 4, 5, 6, 7, 8],
     allowScroll: true,
     displayHeader: true,
+    whiteKeyHeight: 120,
     startNote: 'A0',
     showHighestKey: true,
     showLowestKeys: false,
@@ -235,6 +235,7 @@ onMounted(() => {
     // 获取 data-key 属性的值（JSON 字符串）
     const dataKey = key.getAttribute('data-key');
 
+    if (!dataKey) return;
     // 解析 JSON 字符串为对象
     const keyData = JSON.parse(dataKey);
 

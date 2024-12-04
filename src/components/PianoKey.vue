@@ -34,13 +34,9 @@ const props = defineProps<{
   x: number;
   note: string;
   isPressed: boolean;
-  width?: number; // 键宽度
-  height?: number; // 键高度
-  borderRadius?: number; // 圆角半径
-  fill?: string; // 默认填充颜色
-  pressedFill?: string; // 按下时的填充颜色
-  strokeColor?: string; // 边框颜色
-  strokeWidth?: number; // 边框宽度
+  width: number; // 键宽度
+  height: number; // 键高度
+  borderRadius: number; // 圆角半径
   isWhiteKey: boolean
 }>()
 
