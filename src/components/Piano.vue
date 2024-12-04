@@ -4,7 +4,7 @@
   :style="{ overflowX: props.allowScroll ? 'auto' : 'hidden' }"
   @dblclick="onDoubleClick"
   >
-    <svg :width="pianoWidth" :height="pianoHeight + headerHeight" :viewBox="`0 0 ${pianoWidth} ${pianoHeight + headerHeight}`">
+    <svg :width="pianoWidth" :height="whiteKeyHeight + headerHeight" :viewBox="`0 0 ${pianoWidth} ${whiteKeyHeight + headerHeight}`">
       <defs>
         <linearGradient id="whiteKeyGradient" x1="0%" y1="0%" x2="100%" y2="0%">
           <stop offset="0%" style="stop-color: #f0f0f0; stop-opacity: 20" />
@@ -49,11 +49,12 @@ import {
   defineProps,
   defineEmits,
   withDefaults,
-  onBeforeUnmount,
   onMounted,
   watch,
 } from 'vue'
 import PianoOctave from './PianoOctave.vue'
+import { release } from 'os';
+
 
 // 用于存储当前按下的音轨
 const activeNotes = new Map();
@@ -64,110 +65,221 @@ const props = withDefaults(
     displayHeader?: boolean,
     startNote?: string,
     whiteKeyHeight?: number,
-    whiteKeyWidth?: number,
-    blackKeyWidth?: number,
-    blackKeyHeight?: number,
     showSections?: boolean,
     showHighestKey?: boolean,
     showLowestKeys?: boolean,
     visibleOctaves?: number[],
-    pianoWidth?: number,
-    pianoHeight?: number,
-    currentSampleSet?: string, // 当前选择的音效组
-    samples?: { [note: string]: string[] }
+    displayKeyNums?: number, // 显示多少个音阶
   }>(),
   {
     visibleOctaves: () => [0, 1,2, 3, 4, 5, 6, 7, 8],
     allowScroll: true,
     displayHeader: true,
-    whiteKeyWidth: 23,
     startNote: 'A0',
-    blackKeyWidth: 13,
-    blackKeyHeight: 80,
     showHighestKey: true,
     showLowestKeys: false,
     showSections: false,
-    pianoWidth: 52 * 23, 
-    pianoHeight: 120,
-    whiteKeyHeight: 120,
-    samples: () => ({}),
-    currentSampleSet: 'piano', 
+    displayKeyNums: 88,
   },
 )
 
-let playerPool: Tone.Players | null = null; // 用于存储加载好的音效
-
-// 用于生成音符路径的函数
-const generateDefaultSamples = (sampleSetName: string): { [note: string]: string } => {
-  const notes = [
-    "A0", "A#0", "B0", "C1", "C#1", "D1", "D#1", "E1", "F1", "F#1", "G1", "G#1",
-    // 继续添加其他八度音符，例如 C2, D2, E2, F2, ...
-  ];
-
-  const samples: { [note: string]: string } = {};
-  for (const note of notes) {
-    // 使用动态路径拼接
-    samples[note] = `/src/samples/${sampleSetName}/${note}.ogg`;
-  }
-  return samples;
-};
-
-// 获取当前选定的音效组
-const getCurrentSampleSet = (): { [note: string]: string } => {
-  // 如果有自定义的音效对象传入，则使用它
-  if (props.samples && props.samples[props.currentSampleSet]) {
-    return props.samples[props.currentSampleSet] as unknown as { [note: string]: string };
-  }
-
-  // 否则从预定义的音效组中选择
-  return generateDefaultSamples(props.currentSampleSet)
-};
-
-// 预加载音效
-const preloadSamples = () => {
-  const currentSamples = getCurrentSampleSet();
-
-  // 清除之前的音效池，防止内存泄漏
-  if (playerPool) {
-    playerPool.dispose();
-    playerPool = null;
-  }
-
-  // 加载新的音效池
-  console.log('currentSamples', currentSamples)
-  playerPool = new Tone.Players(currentSamples, () => {
-    console.log("All samples for the current set are loaded!");
-  }).toDestination();
-};
+const pianoWidth = computed(() => {
+  return whiteKeyWidth.value * 88
+})
 
 const headerHeight = computed(() => {
     return props.displayHeader ? props.whiteKeyHeight * 0.1 : 0
 })
+
+const whiteKeyWidth = computed(() => {
+  return props.whiteKeyHeight / 5
+})
+
+const blackKeyWidth = computed(() => {
+  return whiteKeyWidth.value * 0.68
+})
+
+const blackKeyHeight = computed(() => {
+  return props.whiteKeyHeight * 0.67
+})
+
+// let playerPool: Tone.Players | null = null; // 用于存储加载好的音效
+
+const notes = {
+"A1": "A1.ogg", 
+"A2": "A2.ogg", 
+"A3": "A3.ogg", 
+"A4": "A4.ogg", 
+"A5": "A5.ogg", 
+"A6": "A6.ogg", 
+"A7": "A7.ogg", 
+"A#1": "As1.ogg", 
+"A#2": "As2.ogg", 
+"A#3": "As3.ogg", 
+"A#4": "As4.ogg", 
+"A#5": "As5.ogg", 
+"A#6": "As6.ogg", 
+"A#7": "As7.ogg", 
+"B1": "B1.ogg", 
+"B2": "B2.ogg", 
+"B3": "B3.ogg", 
+"B4": "B4.ogg", 
+"B5": "B5.ogg", 
+"B6": "B6.ogg", 
+"B7": "B7.ogg", 
+"C1": "C1.ogg", 
+"C2": "C2.ogg", 
+"C3": "C3.ogg", 
+"C4": "C4.ogg", 
+"C5": "C5.ogg", 
+"C6": "C6.ogg", 
+"C7": "C7.ogg", 
+"C8": "C8.ogg", 
+"C#1": "Cs1.ogg", 
+"C#2": "Cs2.ogg", 
+"C#3": "Cs3.ogg", 
+"C#4": "Cs4.ogg", 
+"C#5": "Cs5.ogg", 
+"C#6": "Cs6.ogg", 
+"C#7": "Cs7.ogg", 
+"D1": "D1.ogg", 
+"D2": "D2.ogg", 
+"D3": "D3.ogg", 
+"D4": "D4.ogg", 
+"D5": "D5.ogg", 
+"D6": "D6.ogg", 
+"D7": "D7.ogg", 
+"D#1": "Ds1.ogg", 
+"D#2": "Ds2.ogg", 
+"D#3": "Ds3.ogg", 
+"D#4": "Ds4.ogg", 
+"D#5": "Ds5.ogg", 
+"D#6": "Ds6.ogg", 
+"D#7": "Ds7.ogg", 
+"E1": "E1.ogg", 
+"E2": "E2.ogg", 
+"E3": "E3.ogg", 
+"E4": "E4.ogg", 
+"E5": "E5.ogg", 
+"E6": "E6.ogg", 
+"E7": "E7.ogg", 
+"F1": "F1.ogg", 
+"F2": "F2.ogg", 
+"F3": "F3.ogg", 
+"F4": "F4.ogg", 
+"F5": "F5.ogg", 
+"F6": "F6.ogg", 
+"F7": "F7.ogg", 
+"F#1": "Fs1.ogg", 
+"F#2": "Fs2.ogg", 
+"F#3": "Fs3.ogg", 
+"F#4": "Fs4.ogg", 
+"F#5": "Fs5.ogg", 
+"F#6": "Fs6.ogg", 
+"F#7": "Fs7.ogg", 
+"G1": "G1.ogg", 
+"G2": "G2.ogg", 
+"G3": "G3.ogg", 
+"G4": "G4.ogg", 
+"G5": "G5.ogg", 
+"G6": "G6.ogg", 
+"G7": "G7.ogg", 
+"G#1": "Gs1.ogg", 
+"G#2": "Gs2.ogg", 
+"G#3": "Gs3.ogg", 
+"G#4": "Gs4.ogg", 
+"G#5": "Gs5.ogg", 
+"G#6": "Gs6.ogg", 
+"G#7": "Gs7.ogg"
+}
+
+// const urls = {};
+
+// for (const note in notes) {
+//   urls[note] = `samples/piano/${note}.ogg`;
+// }
+
+// console.log(urls)
+
+const sampler = new Tone.Sampler({
+  urls: notes,
+  baseUrl: "/samples/piano/",
+  release: 1,
+  onload: () => {
+    console.log('采样器已加载完毕!');
+  },
+  onerror: (error) => {
+    console.error('采样器加载失败:', error);
+  }
+}).toDestination(); 
+
+// 解锁音频上下文
+document.addEventListener('click', async () => {
+  await Tone.start();
+  console.log('音频上下文已解锁');
+}, { once: true });
+
+const playNote = (note: string) => {
+  sampler.triggerAttack(note);
+}
+
+const stopNote = (note: string) => {
+  sampler.triggerRelease(note);
+}
+
+onMounted(() => {
+  // 处理按键事件
+  const keys = document.querySelectorAll('[item-key="piano-key-single-item"]');
+
+  keys.forEach(key => {
+    // 获取 data-key 属性的值（JSON 字符串）
+    const dataKey = key.getAttribute('data-key');
+
+    // 解析 JSON 字符串为对象
+    const keyData = JSON.parse(dataKey);
+
+    // 从解析后的对象中获取 note 属性
+    const note = keyData.note; 
+
+    // console.log("addEventListener, note: ", note);
+    key.addEventListener('mousedown', (event) => {
+      event.preventDefault(); // 阻止默认事件
+      event.stopPropagation()
+      playNote(note);
+      pressKey(event)
+    });
+    key.addEventListener('mouseup', (event) => {
+      event.preventDefault(); // 阻止默认事件
+      event.stopPropagation()
+      stopNote(note);
+      releaseKey(event)
+    });
+    key.addEventListener('mouseleave', (event) => {
+      event.preventDefault(); // 阻止默认事件
+      event.stopPropagation()
+      stopNote(note);
+      releaseKey(event)
+    });
+
+    key.addEventListener('touchstart', (event) => {
+      event.preventDefault(); // 阻止默认事件
+      event.stopPropagation()
+      playNote(note);
+      pressKey(event)
+    });
+    key.addEventListener('touchend', (event) => {
+      event.preventDefault(); // 阻止默认事件
+      event.stopPropagation()
+      stopNote(note);
+      releaseKey(event)
+    });
+  });
+})
+
+
+
 const pianoElement = ref<HTMLElement | null>(null); // 引用目标 DOM 元素
 const pressedKeys = ref<Map<string, boolean>>(new Map<string, boolean>())
-
-defineEmits<{
-  (
-    e: 'keyPress',
-    data: { keyIndex: number; octave: number; note: string, itemKey: string },
-    originalEvent: MouseEvent,
-  ): void
-  (
-    e: 'keyRelease',
-    data: { keyIndex: number; octave: number; note: string, itemKey: string },
-    originalEvent: MouseEvent,
-  ): void
-  (
-    e: 'mouseEnter',
-    data: { keyIndex: number; octave: number; note: string, itemKey: string },
-    originalEvent: MouseEvent,
-  ): void
-  (
-    e: 'mouseLeave',
-    data: { keyIndex: number; octave: number; note: string, itemKey: string },
-    originalEvent: MouseEvent,
-  ): void
-}>()
 
 // 计算 startNote 的位置
 const calculateStartPosition = (note: string): number => {
@@ -179,15 +291,15 @@ const calculateStartPosition = (note: string): number => {
   let preSkipWhiteKey = 0
   if (octave === 0) {
     preSkipWhiteKey = noteName === "B" ? 1 : 0
-    return preSkipWhiteKey * props.whiteKeyWidth
+    return preSkipWhiteKey * whiteKeyWidth.value
   } 
   
   skipWhiteKey = (octave - 1) * 7 + noteIndex + 2
-  return skipWhiteKey * props.whiteKeyWidth
+  return skipWhiteKey * whiteKeyWidth.value
 }
 
 // 公共函数：从事件中提取键数据
-const getKeyDataFromEvent = (event: MouseEvent) => {
+const getKeyDataFromEvent = (event: Event) => {
   const target = (event.target as HTMLElement).closest(
     '[item-key="piano-key-single-item"]',
   ) as HTMLElement | null
@@ -218,209 +330,42 @@ const onDoubleClick = (event: MouseEvent) => {
   return
 }
 
-// 处理按键按下的事件
-const emitKeyPress = (data: {
-  keyData: { keyIndex: number; octave: number; note: string, itemKey: string }
-  originalEvent: MouseEvent
-}) => {
-  const note = data.keyData.note;
-  console.log('playerPool', playerPool)
-  console.log('has', playerPool?.has(note))
-  if (playerPool && playerPool.has(note) && !activeNotes.has(note)) {
-    // 使用预加载好的音效进行播放
-    const player = playerPool.player(note);
-    try {
-      player.start();
-      activeNotes.set(note, player);
-    } catch (error) {
-      const synth = new Tone.Synth().toDestination();
-      synth.triggerAttack(data.keyData.note);
-      activeNotes.set(data.keyData.note, synth);
-    }
-  } else if (!activeNotes.has(note)) {
-    // 使用默认的钢琴音色播放音符
-    const synth = new Tone.Synth().toDestination();
-    synth.triggerAttack(data.keyData.note);
-    activeNotes.set(data.keyData.note, synth);
-  } else {
-    console.warn(`Sample for note ${note} is not loaded yet or does not exist`);
-  }
-  console.log('Key Pressed:', data.keyData)
-}
+const emit = defineEmits<{
+  (
+    e: 'keyPress',
+    data: { keyIndex: number; octave: number; note: string, itemKey: string },
+    originalEvent: Event,
+  ): void
+  (
+    e: 'keyRelease',
+    data: { keyIndex: number; octave: number; note: string, itemKey: string },
+    originalEvent: Event,
+  ): void
+}>()
 
-const emitKeyRelease = (data: {
-  keyData: { keyIndex: number; octave: number; note: string, itemKey: string }
-  originalEvent: MouseEvent
-}) => {
-  const note = data.keyData.note;
-  if (activeNotes.has(note)) {
-    const player = activeNotes.get(note);
-    console.log('player', player)
-    if (player && 'stop' in player) {
-      player.stop(); // 调用 Player 的停止播放方法
-    } else if (player && 'triggerRelease' in player) {
-      (player as Tone.Synth).triggerRelease(); // 使用 Synth 的 triggerRelease 方法停止音符
-    }
-    activeNotes.delete(note);
-  }
-  console.log('Key Released:', data.keyData)
-}
-
-const activeKeys = new Map<
-  number,
-  { keyIndex: number; octave: number; note: string; itemKey: string }
->()
-
-const handleContextMenu = (event: MouseEvent) => {
-  event.preventDefault()
-  event.stopPropagation()
-}
-
-const handleTouchStart = (event: TouchEvent) => {
-  event.preventDefault()
-  event.stopPropagation()
-}
-
-const handleTouchMove = (event: TouchEvent) => {
-    event.preventDefault()
-    event.stopPropagation()
-  if (event.touches.length > 1) {
-    event.preventDefault()
-    event.stopPropagation()
-  }
-}
-
-const handlePointerDown = (event: PointerEvent) => {
-  event.preventDefault()
-  event.stopPropagation()
-
-  const result = getKeyDataFromEvent(event)
-  if (result) {
-    const key = result.itemKey
-    if (!pressedKeys.value.has(key)) {
-      pressedKeys.value.set(key, true) // 记录按键状态
-      emitKeyPress({ keyData: result, originalEvent: event }) // 将键数据和事件一起传递
-    }
-    activeKeys.set(event.pointerId, result) // 将 pointerId 和当前按键 key 绑定
-  }
-}
-
-const handlePointerMove = (event: PointerEvent) => {
-    console.log('pointer move', event.pointerId)
-  if (pressedKeys.value.size === 0) {
-    return
-  }
-  
-  const result = getKeyDataFromEvent(event)
-  const previousKey = activeKeys.get(event.pointerId) // 获取当前触控点上次的按键 key
-  if (!result) { //未在按键区域
-    if (previousKey) { //还有上一个按钮
-      releaseKey(previousKey, event)
-      return
-    }
-    return
-  }
-  if (previousKey) { //在按键区域，并且有上一个按键
-    const currentKey = result.itemKey
-    if (previousKey.itemKey !== currentKey) { //当前的key和上一个不一样
-      if (pressedKeys.value.has(previousKey.itemKey)) {  //并且上一个按键还没松开
-        releaseKey(previousKey, event)
-      }
-      if (!pressedKeys.value.has(currentKey)) { //当前按键未被按下过
-        pressKey(result, event)
-      }
-    }
-    // 更新 activeKeys 中该触控点的按键为当前按键
-    activeKeys.set(event.pointerId, result)
-  } else { //没有上一个
-    pressKey(result, event)
-  }
-}
-
-const handlePointerUp = (event: PointerEvent) => {
-  const result = getKeyDataFromEvent(event)
-  if (result) {
-    emitKeyRelease({ keyData: result, originalEvent: event })
-    pressedKeys.value.delete(result.itemKey) // 从 pressedKeys 中移除该按键
-  }
-
-  activeKeys.delete(event.pointerId) // 从 activeKeys 中移除该触控点
-}
-
-const pressKey = (keyData: { keyIndex: number; octave: number; note: string; itemKey: string }, event: PointerEvent) => {
+const pressKey = (event: Event) => {
+  const keyData = getKeyDataFromEvent(event)
   pressedKeys.value.set(keyData.itemKey, true) // 记录按键状态
-  emitKeyPress({ keyData: keyData, originalEvent: event }) // 将键数据和事件一起传递
+  emit('keyPress', keyData, event) // 将键数据和事件一起传递
 }
 
-const releaseKey = (keyData: { keyIndex: number; octave: number; note: string; itemKey: string }, event: PointerEvent) => {
+const releaseKey = (event: Event) => {
   //滑出了按键区域
-  emitKeyRelease({ keyData: keyData, originalEvent: event })
+  const keyData = getKeyDataFromEvent(event)
   pressedKeys.value.delete(keyData.itemKey) // 移除按键状态
-  activeKeys.delete(event.pointerId) // 从 activeKeys 中移除该触控点
+  emit('keyRelease', keyData, event)
 }
 
 // 监听 startNote 的变化
 watch(() => props.startNote, (newStartNote) => {
   if (pianoElement.value) {
     const startPosition = calculateStartPosition(newStartNote || 'C1');
-    console.log('startPosition', startPosition)
     pianoElement.value.scrollLeft = startPosition;
+  } else {
+    console.log('pianoElement.value is null');
   }
 });
 
-// 监听音效组的变化
-watch(() => props.currentSampleSet, (newSampleSet) => {
-  console.log(`Switching to sample set: ${newSampleSet}`);
-  preloadSamples(); // 加载新的音效
-});
-
-// 在组件挂载时添加事件监听
-onMounted(() => {
-  preloadSamples();
-
-  const audioContext = Tone.getContext().rawContext;
-  if (audioContext.state !== 'running') {
-    audioContext.resume().then(() => {
-      console.log('AudioContext resumed on mount');
-    });
-  }
-  if (pianoElement.value) {
-    const startPosition = calculateStartPosition(props.startNote);
-    pianoElement.value.scrollLeft = startPosition;
-    // 在特定 DOM 元素上监听 pointer 事件
-    pianoElement.value.addEventListener('pointerdown', handlePointerDown);
-    pianoElement.value.addEventListener('pointermove', handlePointerMove);
-    pianoElement.value.addEventListener('pointerup', handlePointerUp);
-    pianoElement.value.addEventListener('contextmenu', handleContextMenu);
-        // 确保阻止浏览器默认的滚动行为
-    pianoElement.value.addEventListener('touchstart', handleTouchStart);
-    pianoElement.value.addEventListener('touchmove', handleTouchMove);
-  
-  }
-});
-
-onBeforeUnmount(() => {
-  if (pianoElement.value) {
-    // 清除事件监听器
-    pianoElement.value.removeEventListener('pointerdown', handlePointerDown);
-    pianoElement.value.removeEventListener('pointermove', handlePointerMove);
-    pianoElement.value.removeEventListener('pointerup', handlePointerUp);
-    pianoElement.value.removeEventListener('contextmenu', handleContextMenu);
-  }
-});
-
-document.addEventListener('touchstart', () => {
-  const audioContext = Tone.getContext().rawContext;
-  if (audioContext.state !== 'running') {
-    audioContext.resume();
-  }
-}, { once: true });
-
-</script>
-<script lang="ts">
-export default {
-  name: 'Piano',
-};
 </script>
 <style scoped>
 .piano-container {

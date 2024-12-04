@@ -7,7 +7,7 @@
 
     <button v-for="note in startNotes" @click="handleStartNoteClick(note)">{{ note }}</button>
     <div style="width: 340px; height: 120px;">
-      <Piano :showSections="showSections" :startNote="startNote" :allowScroll="showSections" :displayHeader="true" :whiteKeyHeight="120" @keyEvent="handleKeyEvent" />
+      <Piano :showSections="showSections" :startNote="startNote" :allowScroll="true" :displayHeader="true" :whiteKeyHeight="120" @keyEvent="handleKeyEvent" />
     </div>
     
   </div>

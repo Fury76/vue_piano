@@ -2,10 +2,11 @@
   <g>
     <!-- 显示最低分区的特殊键 -->
     <g v-if="octaveIndex === visibleOctaves[0] && octaveIndex === 0">
-      <WhiteKey
+      <PianoKey
         v-for="(note, index) in ['A', 'B']"
         :key="`lowest-${note}`"
-        :note="note"
+        :isWhiteKey="true"
+        :note="`${note}`"
         :octave="0"
         :x="calculatedKeyX(octaveIndex, index)"
         :width="whiteKeyWidth"
@@ -18,10 +19,12 @@
         :isPressed="pressedKeys.has(JSON.stringify({ keyIndex: index, octave: 0, note: note+0, scaleNote: note }))"
         :data-key="JSON.stringify({ keyIndex: index, octave: 0, note: note+0, scaleNote: note})"
       />
-      <BlackKey
+      
+      <PianoKey
         :key="'lowest-black-A#'"
+        :isWhiteKey="false"
         :note="'A#'"
-        :x="whiteKeyWidth - (whiteKeyWidth / 4)"
+        :x="whiteKeyWidth - (whiteKeyWidth / 4) - 2"
         :octave="0"
         :width="blackKeyWidth"
         :height="blackKeyHeight"
@@ -36,8 +39,9 @@
     </g>
     <!-- 普通八度白键和黑键 -->
     <g v-else-if="octaveIndex !== 8">
-      <WhiteKey
+      <PianoKey
         v-for="(note, index) in whiteNotes"
+        :isWhiteKey="true"
         :key="`white-${note}`"
         :keyIndex="octaveIndex * 12 + index"
         :octave="octaveIndex"
@@ -53,8 +57,9 @@
         :isPressed="pressedKeys.has(JSON.stringify({ keyIndex: octaveIndex * 12 + index, octave: octaveIndex, note: note+octaveIndex, scaleNote: note }))"
         :data-key="JSON.stringify({ keyIndex: octaveIndex * 12 + index, octave: octaveIndex, note: note+octaveIndex, scaleNote: note  })"
       />
-      <BlackKey
+      <PianoKey
         v-for="(note, index) in blackNotes"
+        :isWhiteKey="false"
         :key="`black-${note}`"
         :keyIndex="octaveIndex * 12 + whiteNotes.indexOf(note.replace('#', '')) + 1"
         :octave="octaveIndex"
@@ -73,8 +78,9 @@
     </g>
         <!-- 最后一个特殊键 -->
     <g v-if="octaveIndex === visibleOctaves[visibleOctaves.length - 1] && octaveIndex === 8">
-      <WhiteKey
+      <PianoKey
         :key="`highest-C8`"
+        :isWhiteKey="true"
         note="C"
         :octave="8"
         :x="calculatedKeyX(octaveIndex, 0)"
@@ -125,9 +131,8 @@
 </template>
 
 <script setup lang="ts">
-import { defineProps, withDefaults, computed } from 'vue';
-import WhiteKey from './WhiteKey.vue';
-import BlackKey from './BlackKey.vue';
+import { defineProps, withDefaults, computed, watch } from 'vue';
+import PianoKey from './PianoKey.vue';
 const bottomRightRadius = 2
 const bottomLeftRadius = 2
 const topLeftRadius = 8 
@@ -157,14 +162,14 @@ const props = withDefaults(defineProps<{
   showSections: false,
   whiteKeyWidth: 23,
   whiteKeyHeight: 120,
-  whiteKeyBorderRadius: 3,
+  whiteKeyBorderRadius: 5,
   whiteKeyFill: 'url(#whiteKeyGradient)',
   whiteKeyPressedFill: 'url(#whiteKeyPressedGradient)',
   whiteKeyStrokeColor: '#000',
   whiteKeyStrokeWidth: 1,
   blackKeyWidth: 13,
   blackKeyHeight: 80,
-  blackKeyBorderRadius: 2,
+  blackKeyBorderRadius: 3,
   blackKeyFill: 'url(#blackKeyGradient)',
   blackKeyPressedFill: 'url(#blackKeyPressedGradient)',
   blackKeyStrokeColor: '#000',
@@ -180,16 +185,18 @@ const caculatedBlackX = computed(() => {
     return blackKeyPositions.value[noteIndex]
   }  
 })
+
 // 默认属性
-const whiteKeyWidth = props.whiteKeyWidth || 23;
-const octaveWidth = whiteKeyWidth * 7;
+const octaveWidth = computed(() => {
+  return props.whiteKeyWidth * 7;
+})
 
 // 判断是否为边界分区（最低或最高）
 const isBoundaryOctave = computed(() => props.octaveIndex === 0 || props.octaveIndex === 8);
 
 const calculatedSection = computed(() => {
   return (octaveIndex: number) => {
-    return {name: props.sectionTexts[octaveIndex-1], start: calculatedOctaveX.value, end: calculatedOctaveX.value + octaveWidth}
+    return {name: props.sectionTexts[octaveIndex-1], start: calculatedOctaveX.value, end: calculatedOctaveX.value + octaveWidth.value}
   }
 })
 
@@ -199,7 +206,7 @@ const calculatedOctaveX = computed(() => {
       startOffset = props.visibleOctaves[0] === 0 ? 2 * props.whiteKeyWidth : 0;
     }
     // 当前 octave 的起始 x 值
-    const skipWidth = skippedOctavesCount.value * octaveWidth
+    const skipWidth = skippedOctavesCount.value * octaveWidth.value
     let x = 0;
     if (props.octaveIndex !== 0) {
       x = startOffset + (props.octaveIndex - 1) * props.whiteKeyWidth * 7 - skipWidth;
@@ -241,7 +248,7 @@ function calculateBlackKeyPositions(): number[] {
   const octaveX = calculatedOctaveX.value
 
   // 返回调整后的黑键位置
-  return keyOffsets.map(offset => octaveX + offset * whiteKeyWidth - (whiteKeyWidth / 4));
+  return keyOffsets.map(offset => octaveX + offset * props.whiteKeyWidth - (props.whiteKeyWidth / 4) - 2);
 }
 
 
