@@ -201,9 +201,14 @@ const notes = {
 
 // console.log(urls)
 
+import PianoSamples from '@/assets/samples/piano/A1.ogg'
+console.log(PianoSamples)
+const samplesBaseUrl = PianoSamples.replace("A1.ogg", "")
+console.log(samplesBaseUrl)
+
 const sampler = new Tone.Sampler({
   urls: notes,
-  baseUrl: "/samples/piano/",
+  baseUrl: samplesBaseUrl,
   release: 1,
   onload: () => {
     console.log('采样器已加载完毕!');

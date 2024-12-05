@@ -1,6 +1,6 @@
 {
   "name": "virtual-piano-vue",
-  "version": "0.0.11",
+  "version": "0.0.12",
   "description": "A virtual piano component for Vue 3 applications.",
   "main": "dist/index.js",
   "module": "dist/index.esm.js",
