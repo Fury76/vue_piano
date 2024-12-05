@@ -1,6 +1,6 @@
 {
   "name": "virtual-piano-vue",
-  "version": "0.0.3",
+  "version": "0.0.11",
   "description": "A virtual piano component for Vue 3 applications.",
   "main": "dist/index.js",
   "module": "dist/index.esm.js",
@@ -28,10 +28,13 @@
     "lint": "eslint . --fix",
     "format": "prettier --write src/"
   },
-  "dependencies": {
-    "pinia": "^2.2.4",
-    "soundfont-player": "^0.12.0",
+  "peerDependencies": {
     "tone": "^15.0.4",
+    "vue": "^3.5.12"
+  },
+  "dependencies": {
+    "tone": "^15.0.4",
+    "virtual-piano-vue": "^0.0.5",
     "vue": "^3.5.12"
   },
   "devDependencies": {

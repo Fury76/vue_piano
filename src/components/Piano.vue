@@ -214,10 +214,10 @@ const sampler = new Tone.Sampler({
 }).toDestination(); 
 
 // 解锁音频上下文
-document.addEventListener('click', async () => {
-  await Tone.start();
-  console.log('音频上下文已解锁');
-}, { once: true });
+// document.addEventListener('click', async () => {
+//   await Tone.start();
+//   console.log('音频上下文已解锁');
+// }, { once: true });
 
 const playNote = (note: string) => {
   sampler.triggerAttack(note);
@@ -235,7 +235,6 @@ onMounted(() => {
     // 获取 data-key 属性的值（JSON 字符串）
     const dataKey = key.getAttribute('data-key');
 
-    if (!dataKey) return;
     // 解析 JSON 字符串为对象
     const keyData = JSON.parse(dataKey);
 

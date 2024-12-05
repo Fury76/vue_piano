@@ -27,7 +27,6 @@ const toggleSections = () => {
 
 const handleStartNoteClick = (note: string) => {
   startNote.value = note
-  console.log(startNote.value)
 }
 
 const handleKeyEvent = (event: any) => {
