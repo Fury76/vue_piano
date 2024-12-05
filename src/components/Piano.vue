@@ -235,6 +235,7 @@ onMounted(() => {
     // 获取 data-key 属性的值（JSON 字符串）
     const dataKey = key.getAttribute('data-key');
 
+    if (!dataKey) return ;
     // 解析 JSON 字符串为对象
     const keyData = JSON.parse(dataKey);
 
